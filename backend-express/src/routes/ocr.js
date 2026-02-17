@@ -8,6 +8,7 @@ const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 const pool = require("../config/db");
 const authMiddleware = require("../middleware/authMiddleware");
+const ExcelJS = require("exceljs")
 
 /* =========================
    MULTER CONFIG
@@ -29,6 +30,60 @@ const upload = multer({ storage });
 /* =========================
    ROUTE
 ========================= */
+
+
+router.get("/export", authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        k.original_filename,
+        k.nik,
+        k.nama,
+        k.status,
+        k.updated_at,
+        u.name AS user_name,
+        u.email AS user_email
+      FROM ktp_scans k
+      JOIN users u ON u.id = k.user_id
+      where k.status = 'verified'
+      ORDER BY k.updated_at DESC
+    `)
+
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet("KTP Data")
+
+    // Header
+    worksheet.columns = [
+      { header: "Original Filename", key: "original_filename", width: 30 },
+      { header: "NIK", key: "nik", width: 20 },
+      { header: "Nama", key: "nama", width: 25 },
+      { header: "Status", key: "status", width: 15 },
+      { header: "Updated At", key: "updated_at", width: 25 },
+      { header: "User Name", key: "user_name", width: 20 },
+      { header: "User Email", key: "user_email", width: 25 },
+    ]
+
+    result.rows.forEach(row => {
+      worksheet.addRow(row)
+    })
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=ktp_export.xlsx"
+    )
+
+    await workbook.xlsx.write(res)
+    res.end()
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: "Gagal export data" })
+  }
+})
 
 router.post("/",authMiddleware, upload.array("files", 5), async (req, res) => {
   let results = [];
@@ -311,5 +366,7 @@ router.get("/drafts", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 module.exports = router;

@@ -8,23 +8,31 @@
     >
       <div class="pa-6 d-flex align-center">
         <v-avatar color="primary" size="32" class="mr-3" elevation="2">
-          <v-icon color="white" size="18">mdi-brain</v-icon>
+          <v-icon color="white" size="18">mdi-account</v-icon>
         </v-avatar>
         <div>
-          <div class="text-subtitle-2 font-weight-black leading-tight">AI OCR</div>
-          <div class="text-caption text-grey">ADMIN DASHBOARD</div>
+          <div class="text-subtitle-2 font-weight-black leading-tight">Welcome {{ userName }}</div>
+          <div class="text-caption text-grey">Powered by EDP SBY @2026</div>
         </div>
       </div>
 
       <v-divider class="mx-4 mb-4"></v-divider>
 
       <v-list nav density="comfortable" class="px-4">
-        <v-list-subheader class="text-uppercase font-weight-bold text-caption">Menu Utama</v-list-subheader>
-        
+        <v-list-subheader class="text-uppercase font-weight-bold text-caption text-grey-darken-1">Menu Utama</v-list-subheader>
+        <v-list-item 
+          to="/admin/dashboard" 
+          prepend-icon="mdi-view-dashboard-outline" 
+          color="primary"
+          rounded="lg"
+          title="Dashboard"
+          class="mb-1"
+        />
+
         <v-list-item 
           to="/admin/upload" 
           prepend-icon="mdi-cloud-upload-outline" 
-          active-color="primary"
+          color="primary"
           rounded="lg"
           title="Upload Dokumen"
           class="mb-1"
@@ -33,30 +41,22 @@
         <v-list-item 
           to="/admin/drafts" 
           prepend-icon="mdi-file-check-outline" 
-          active-color="primary"
+          color="primary"
           rounded="lg"
           title="Verifikasi Draft"
           class="mb-1"
         />
+        
+        <v-list-item 
+          @click="exportExcel"
+          prepend-icon="mdi-file-export-outline" 
+          color="primary"
+          rounded="lg"
+          title="Ekspor Data"
+          class="mb-1"
+          link
+        />
       </v-list>
-
-      <template v-slot:append>
-        <div class="pa-4">
-          <v-card variant="tonal" color="grey-darken-3" class="rounded-xl pa-3">
-            <div class="d-flex align-center">
-              <v-avatar size="32" color="primary-lighten-4" class="mr-3">
-                <v-icon size="18" color="primary">mdi-account-circle</v-icon>
-              </v-avatar>
-              <div class="overflow-hidden">
-                <div class="text-caption font-weight-bold text-truncate">Administrator</div>
-                <div class="text-error font-weight-bold cursor-pointer" style="font-size: 10px;" @click="logout">
-                  LOGOUT
-                </div>
-              </div>
-            </div>
-          </v-card>
-        </div>
-      </template>
     </v-navigation-drawer>
 
     <v-app-bar 
@@ -72,22 +72,28 @@
 
       <v-spacer />
 
-      <v-btn icon class="mr-2">
-        <v-badge dot color="success">
-          <v-icon color="grey-darken-1">mdi-bell-outline</v-icon>
-        </v-badge>
-      </v-btn>
-
-      <v-btn 
-        variant="outlined" 
-        color="error" 
-        size="small" 
-        class="rounded-lg font-weight-bold px-4"
-        prepend-icon="mdi-power"
-        @click="logout"
-      >
-        Logout
-      </v-btn>
+      <div class="d-flex align-center">
+        <v-avatar size="36" color="primary" class="mr-3">
+          <span class="text-white font-weight-bold">{{ userInitials }}</span>
+        </v-avatar>
+        <div class="overflow-hidden">
+          <div class="text-subtitle-2 font-weight-black text-truncate text-grey-darken-4">
+            {{ userName }}
+          </div>
+          <v-tooltip text="Keluar dari sistem" location="bottom">
+            <template #activator="{ props }">
+              <div
+                v-bind="props"
+                class="text-caption text-primary font-weight-bold cursor-pointer d-flex align-center"
+                @click="logout"
+              >
+                <v-icon size="12" class="mr-1">mdi-logout</v-icon>
+                Keluar
+              </div>
+            </template>
+          </v-tooltip>
+        </div>
+      </div>
     </v-app-bar>
 
     <v-main>
@@ -99,40 +105,110 @@
         </v-fade-transition>
       </v-container>
     </v-main>
+
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      location="top right"
+      timeout="3000"
+    >
+      {{ snackbar.text }}
+      <template v-slot:actions>
+        <v-btn variant="text" @click="snackbar.show = false">Tutup</v-btn>
+      </template>
+    </v-snackbar>
   </v-app>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from "#imports"
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useNuxtApp } from "#imports"
+import { useAuth } from "~~/app/composables/useAuth"
 
 const router = useRouter()
+const { logout: authLogout } = useAuth()
 const drawer = ref(true)
+const userName = ref('Guest')
+
+// State untuk notifikasi notify
+const snackbar = ref({
+  show: false,
+  text: '',
+  color: 'success'
+})
+
+// Fungsi helper notify
+function notify(message: string, color: string = 'success') {
+  snackbar.value.text = message
+  snackbar.value.color = color
+  snackbar.value.show = true
+}
+
+onMounted(() => {
+  const userData = localStorage.getItem("user_data")
+  if (userData) {
+    try {
+      const user = JSON.parse(userData)
+      userName.value = user.name || 'User'
+    } catch (e) {
+      console.error("Gagal parsing user data")
+    }
+  }
+})
+
+const userInitials = computed(() => {
+  if (!userName.value || userName.value === 'Guest') return 'G'
+  const parts = userName.value.split(/[.\s]/).filter(Boolean)
+  if (parts.length > 1) {
+    const a = parts[0]?.[0] ?? ''
+    const b = parts[1]?.[0] ?? ''
+    const initials = (a + b).toUpperCase()
+    return initials || 'G'
+  }
+  const fallback = (userName.value.substring(0, 2) ?? '').toUpperCase()
+  return fallback || 'G'
+})
 
 function logout() {
-  // Gunakan key yang sama dengan saat login
-  localStorage.removeItem("admin_token")
-  // Opsional: bersihkan state lain jika ada
-  router.push("/login")
+  authLogout() // Memanggil logout dari useAuth agar redirect konsisten
+}
+
+async function exportExcel() {
+  try {
+    const { $api } = useNuxtApp()
+
+    // Menggunakan $api agar interceptor auth/expired di api.ts berjalan
+    const blob: Blob = await $api("/api/ocr/export", {
+      method: "GET",
+      responseType: "blob"
+    })
+
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `ktp_export_${new Date().getTime()}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    
+    notify("Data berhasil diekspor ke Excel", "success")
+
+  } catch (err: any) {
+    // Abaikan jika error 401 karena sudah ditangani api.ts (redirect logout)
+    if (err.status !== 401) {
+      console.error("Gagal export excel:", err)
+      notify(err.data?.message || "Gagal mengunduh file Excel", "error")
+    }
+  }
 }
 </script>
 
 <style scoped>
-.leading-tight {
-  line-height: 1.2;
-}
-
-/* Membuat scrollbar lebih cantik di sidebar */
-:deep(.v-navigation-drawer__content::-webkit-scrollbar) {
-  width: 4px;
-}
-:deep(.v-navigation-drawer__content::-webkit-scrollbar-thumb) {
-  background: #e0e0e0;
-  border-radius: 10px;
-}
-
-/* Background halus untuk area konten */
-.v-main {
-  background-color: #f8fafc;
-}
+.leading-tight { line-height: 1.2; }
+/* Scrollbar halus untuk sidebar */
+:deep(.v-navigation-drawer__content::-webkit-scrollbar) { width: 4px; }
+:deep(.v-navigation-drawer__content::-webkit-scrollbar-thumb) { background: #e0e0e0; border-radius: 10px; }
+.v-main { background-color: #f8fafc; }
 </style>

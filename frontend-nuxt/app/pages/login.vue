@@ -7,22 +7,27 @@
 
                     <div class="d-flex align-center mb-12">
                         <div class="logo-box mr-3">
-                            <v-icon color="white" size="24">mdi-layers-triple</v-icon>
+                            <v-icon color="white" size="30">mdi-source-branch-plus</v-icon>
                         </div>
-                        <span class="text-h6 font-weight-black text-slate-800 tracking-tighter">AI - OCR <span
-                                class="text-primary font-weight-light">v-1</span></span>
+                        <span class="text-h6 font-weight-black text-slate-800 tracking-tighter">EDP SBY -
+                            <span class="text-primary font-weight-light text-subtitle-2">Vision</span>
+                            </span>
                     </div>
+                    <v-alert v-if="infoMessage" type="warning" variant="tonal" closable class="mb-4 text-caption"
+                        density="compact">
+                        {{ infoMessage }}
+                    </v-alert>
 
-                    <div class="mb-10">
+                    <!-- <div class="mb-10">
                         <h1 class="text-h3 font-weight-black text-slate-900 mb-2 tracking-tighter">Login.</h1>
                         <p class="text-body-1 text-slate-500">Gunakan akses admin Anda untuk masuk ke sistem verifikasi.
                         </p>
-                    </div>
+                    </div> -->
 
                     <v-form @submit.prevent="handleLogin">
                         <div class="mb-6">
                             <label class="text-subtitle-2 font-weight-black text-slate-700 ml-1">E-MAIL ADDRESS</label>
-                            <v-text-field v-model="email" placeholder="nama@perusahaan.com" variant="outlined"
+                            <v-text-field v-model="email" placeholder="your email account" variant="outlined"
                                 density="comfortable" rounded="lg" color="primary" class="mt-2 custom-field"
                                 prepend-inner-icon="mdi-email-outline" hide-details />
                         </div>
@@ -55,7 +60,7 @@
 
                     <div class="mt-16 text-caption text-slate-400 d-flex align-center">
                         <v-icon size="14" class="mr-2">mdi-shield-check</v-icon>
-                        EDP SURABAYA &bull; &copy; 2026
+                        Ybs - @EDP SURABAYA &bull; &copy; 2026
                     </div>
                 </div>
             </v-col>
@@ -106,8 +111,11 @@
             </v-col>
 
         </v-row>
+
     </v-container>
 </template>
+
+
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
@@ -123,11 +131,22 @@ const password = ref("");
 const loading = ref(false);
 const error = ref("");
 const showPassword = ref(false);
+const route = useRoute()
+const infoMessage = ref("")
 
 onMounted(() => {
-    if (isAuthenticated()) router.push("/admin/dashboard");
-});
+    // 1. Cek query parameter dulu
+    if (route.query.msg === 'session_expired') {
+        infoMessage.value = "Sesi Anda telah berakhir. Silakan login kembali."
 
+        // Opsional: Hapus query param dari URL agar tidak muncul terus saat di-refresh
+        router.replace({ query: {} })
+    }
+    // 2. Jika tidak ada pesan error, baru cek apakah sudah login
+    else if (isAuthenticated()) {
+        router.push("/admin/dashboard")
+    }
+})
 async function handleLogin() {
     if (!email.value || !password.value) {
         error.value = "E-mail dan password wajib diisi";
@@ -136,8 +155,16 @@ async function handleLogin() {
     try {
         loading.value = true;
         error.value = "";
+
         const data = await adminLogin(email.value, password.value);
+
+        // 1. Simpan Token
         localStorage.setItem("admin_token", data.token);
+
+        // 2. Simpan Data User (Gunakan JSON.stringify karena data adalah objek)
+        localStorage.setItem("user_data", JSON.stringify(data.user));
+
+        // Redirect ke dashboard
         router.push("/admin/dashboard");
     } catch (err: any) {
         error.value = err.message || "Login gagal, silakan coba lagi.";

@@ -175,17 +175,26 @@ function getImageUrl(path: string) {
   const cleanPath = path.replace(/\\/g, '/')
   return `${config.public.apiBase}/${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`
 }
-
 async function loadDrafts() {
   try {
     const { $api } = useNuxtApp()
+    // Jika token expired, request ini akan memicu redirect otomatis dari api.ts
     const data: any = await $api("/api/ocr/drafts")
+    
     drafts.value = data.map((d: any) => ({
       ...d,
-      isSaving: false, zoomScale: 1, posX: 0, posY: 0, rotation: 0
+      isSaving: false, 
+      zoomScale: 1, 
+      posX: 0, 
+      posY: 0, 
+      rotation: 0
     }))
-  } catch (err) {
-    console.error("Gagal load data")
+  } catch (err: any) {
+    // Kita cek jika bukan error 401 (karena 401 sudah dihandle api.ts)
+    if (err.status !== 401) {
+      notify("Gagal memuat data draft dari server", "error")
+    }
+    console.error("Gagal load data:", err)
   }
 }
 
@@ -193,21 +202,32 @@ async function save(item: any) {
   item.isSaving = true
   try {
     const { $api } = useNuxtApp()
-    await $api(`/api/ocr/${item.id}`, { method: "PUT", body: item })
     
-    notify(`Data ${item.nama} berhasil disimpan`)
+    // Request PUT untuk update data
+    await $api(`/api/ocr/${item.id}`, { 
+      method: "PUT", 
+      body: item 
+    })
+    
+    notify(`Data ${item.nama} berhasil disimpan`, "success")
 
-    // Hapus item dari daftar lokal
+    // Animasi transisi halus sebelum menghapus dari list
     setTimeout(() => {
       drafts.value = drafts.value.filter(d => d.id !== item.id)
       
-      // LOGIKA REDIRECT OTOMATIS (Opsional)
-      // Jika ingin redirect otomatis saat data terakhir habis, aktifkan ini:
-      // if (drafts.value.length === 0) router.push('/upload')
+      // Jika data sudah habis, arahkan kembali ke upload
+      if (drafts.value.length === 0) {
+        navigateTo("/admin/upload")
+      }
     }, 300)
     
   } catch (err: any) {
-    notify(err.data?.message || "Gagal simpan", "error")
+    // Tampilkan pesan error spesifik dari backend jika ada (misal: "NIK sudah terdaftar")
+    // Tapi lewati jika error 401 agar tidak tabrakan dengan redirect logout
+    if (err.status !== 401) {
+      const errorMsg = err.data?.message || "Gagal menyimpan perubahan"
+      notify(errorMsg, "error")
+    }
   } finally {
     item.isSaving = false
   }
