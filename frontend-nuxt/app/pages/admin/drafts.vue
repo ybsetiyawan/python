@@ -1,127 +1,256 @@
 <template>
-  <v-container class="py-8">
+  <v-container class="py-10 bg-grey-lighten-4" style="min-height: 100vh;">
 
-    <!-- SNACKBAR -->
- <v-snackbar
-  v-model="snackbar"
-  color="success"
-  timeout="3000"
-  location="center"
-  elevation="8"
->
-  Data berhasil diverifikasi
+    <div class="mb-8 d-flex align-end justify-space-between text-no-wrap overflow-hidden">
+      <div class="header-content">
+        <div class="d-flex align-center mb-1">
+          <v-chip color="primary" variant="flat" size="x-small" class="font-weight-black px-3 mr-2">AI OCR</v-chip>
+          <div class="status-dot-active mr-1"></div>
+          <span class="text-caption font-weight-bold text-grey-darken-1">SYSTEM DADAKAN</span>
+        </div>
+        <h1 class="text-h4 font-weight-black text-grey-darken-4 tracking-tight">
+          Verifikasi <span class="text-primary">Draft</span>
+        </h1>
+      </div>
+    </div>
 
-  <template #actions>
-    <v-btn
-      variant="text"
-      color="white"
-      @click="goToUpload"
-    >
-      Upload Lagi
-    </v-btn>
-  </template>
-</v-snackbar>
+    <div v-if="drafts.length > 0">
+      <v-row v-for="(item, index) in drafts" :key="item.id" class="mb-8" justify="center">
+        <v-col cols="12" md="11" lg="10">
+          <v-card elevation="2" class="rounded-xl overflow-hidden shadow-soft border">
+            <v-row no-gutters>
+              <v-col cols="12" md="6" class="bg-grey-lighten-3 relative overflow-hidden viewer-bg" style="height: 420px;">
+                <div class="zoom-wrapper" @wheel.prevent="handleWheel($event, index)"
+                  @mousedown="startDrag($event, index)" @mousemove="onDrag($event, index)" @mouseup="stopDrag"
+                  @mouseleave="stopDrag">
+                  
+                  <div class="position-absolute z-index-2 d-flex flex-column align-end ma-3" style="top:0; right:0;">
+                    <v-btn icon="mdi-rotate-right" size="small" color="primary" class="mb-2" elevation="2" @click="rotateImage(index)"></v-btn>
+                    <v-btn icon="mdi-refresh" size="small" color="white" elevation="2" @click="resetView(index)"></v-btn>
+                  </div>
 
+                  <div class="zoom-level-badge z-index-2">
+                    {{ (item.zoomScale * 100).toFixed(0) }}% | {{ item.rotation }}°
+                  </div>
 
+                  <div class="image-container d-flex align-center justify-center" :style="{
+                    transform: `scale(${item.zoomScale}) translate(${item.posX}px, ${item.posY}px) rotate(${item.rotation}deg)`,
+                    cursor: item.zoomScale > 1 ? 'grab' : 'default'
+                  }">
+                    <v-img :src="getImageUrl(item.image_path)" width="100%" contain draggable="false" class="ktp-image-render">
+                      <template v-slot:placeholder>
+                        <v-row class="fill-height ma-0" align="center" justify="center">
+                          <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                        </v-row>
+                      </template>
+                    </v-img>
+                  </div>
+                </div>
+              </v-col>
 
-    <!-- EMPTY STATE -->
-    <v-alert
-      v-if="drafts.length === 0"
-      type="success"
-      variant="tonal"
-      class="mb-6"
-    >
-      Semua draft sudah diverifikasi 🎉
-    </v-alert>
+              <v-col cols="12" md="6" class="pa-8 bg-white d-flex flex-column justify-center border-s">
+                <div class="mb-6">
+                  <v-chip color="primary-lighten-5" text-color="primary" size="x-small" class="font-weight-black mb-1">
+                    ITEM #{{ index + 1 }}
+                  </v-chip>
+                  <h3 class="text-h6 font-weight-bold text-grey-darken-4">Verifikasi Identitas</h3>
+                </div>
 
-    <v-row v-for="item in drafts" :key="item.id" class="mb-8">
-      <v-col cols="12">
-        <v-card elevation="3" class="pa-4">
+                <v-form @submit.prevent="save(item)">
+                  <div class="mb-4">
+                    <div class="d-flex justify-space-between align-center ml-1 mb-1">
+                      <span class="text-caption font-weight-bold text-grey-darken-2">NIK</span>
+                      <v-chip :color="item.nik?.length === 16 ? 'success' : 'warning'" size="x-small" variant="flat" class="font-weight-black text-white">
+                        {{ item.nik?.length || 0 }} / 16
+                      </v-chip>
+                    </div>
+                    <v-text-field 
+                      v-model="item.nik" 
+                      variant="outlined" 
+                      density="comfortable"
+                      bg-color="grey-lighten-5"
+                      prepend-inner-icon="mdi-identifier" 
+                      rounded="lg" 
+                      hide-details
+                      @input="item.nik = item.nik.replace(/\D/g, '')"
+                      maxLength="16"
+                    />
+                  </div>
 
-          <v-row>
+                  <div class="mb-8">
+                    <span class="text-caption font-weight-bold text-grey-darken-2 ml-1">Nama Lengkap</span>
+                    <v-text-field 
+                      v-model="item.nama" 
+                      variant="outlined" 
+                      density="comfortable"
+                      bg-color="grey-lighten-5"
+                      prepend-inner-icon="mdi-account-outline" 
+                      rounded="lg" 
+                      hide-details
+                    />
+                  </div>
 
-            <!-- IMAGE -->
-            <v-col cols="12" md="5">
-              <v-img
-                :src="`${config.public.apiBase}/${item.image_path.replace(/\\/g, '/')}`"
-                aspect-ratio="1.6"
-                cover
-                class="rounded-lg"
-              />
-            </v-col>
+                  <v-btn 
+                    color="primary" 
+                    size="x-large" 
+                    block 
+                    class="rounded-xl font-weight-bold py-7" 
+                    elevation="3"
+                    :loading="item.isSaving" 
+                    :disabled="!isValid(item)"
+                    @click="save(item)"
+                  >
+                    <span>{{ isValid(item) ? 'KONFIRMASI DATA' : 'LENGKAPI DATA' }}</span>
+                    <v-icon end size="small" class="ml-2">
+                      {{ isValid(item) ? 'mdi-check-all' : 'mdi-lock-outline' }}
+                    </v-icon>
+                  </v-btn>
+                </v-form>
+              </v-col>
+            </v-row>
+          </v-card>
+        </v-col>
+      </v-row>
+    </div>
 
-            <!-- FORM -->
-            <v-col cols="12" md="7">
-
-              <!-- STATUS CHIP -->
-              <div class="d-flex align-center mb-4">
-                <v-chip
-                  color="orange"
-                  variant="flat"
-                  size="small"
-                  class="font-weight-bold"
-                >
-                  DRAFT
-                </v-chip>
-              </div>
-
-              <v-text-field v-model="item.nik" label="NIK" />
-              <v-text-field v-model="item.nama" label="Nama" />
-
-              <v-btn
-                color="primary"
-                class="mt-4"
-                @click="save(item)"
-              >
-                Simpan & Verifikasi
-              </v-btn>
-
-            </v-col>
-
-          </v-row>
-
+    <v-row v-else justify="center" class="mt-10">
+      <v-col cols="12" md="6" class="text-center">
+        <v-card class="pa-10 rounded-xl border shadow-soft" variant="flat">
+          <v-icon size="100" color="grey-lighten-1" class="mb-4">mdi-file-check-outline</v-icon>
+          <h2 class="text-h5 font-weight-black text-grey-darken-3">Semua Data Terverifikasi!</h2>
+          <p class="text-body-2 text-grey-darken-1 mb-8 mt-2">
+            Tidak ada draft tersisa untuk dikonfirmasi. Anda bisa mengunggah dokumen baru sekarang.
+          </p>
+          <v-btn 
+            color="primary" 
+            prepend-icon="mdi-upload" 
+            size="large" 
+            class="rounded-lg px-8 font-weight-bold" 
+            @click="router.push('/admin/upload')"
+          >
+            UNGGAH DOKUMEN BARU
+          </v-btn>
         </v-card>
       </v-col>
     </v-row>
 
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" elevation="24" rounded="lg" :timeout="3000">
+      <div class="d-flex align-center">
+        <v-icon start>{{ snackbar.color === 'success' ? 'mdi-check-circle' : 'mdi-alert-circle' }}</v-icon>
+        <span class="font-weight-bold">{{ snackbar.message }}</span>
+      </div>
+    </v-snackbar>
+
   </v-container>
 </template>
 
-
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
+import { useRouter, useNuxtApp, useRuntimeConfig } from "#imports";
+import { useAuth } from "~~/app/composables/useAuth";
 
 const config = useRuntimeConfig()
+const router = useRouter();
+const { getToken } = useAuth();
 const drafts = ref<any[]>([])
-const snackbar = ref(false)
-const router = useRouter()
+const isDragging = ref(false)
+const lastMousePos = ref({ x: 0, y: 0 })
+const snackbar = ref({ show: false, message: "", color: "success" })
+
+onMounted(async () => {
+  const token = getToken();
+  if (!token) {
+    router.push("/login");
+    return;
+  }
+  loadDrafts();
+});
+
+const isValid = (item: any) => {
+  return (item.nik?.length === 16) && (item.nama?.trim().length > 0)
+}
+
+function getImageUrl(path: string) {
+  if (!path) return ''
+  const cleanPath = path.replace(/\\/g, '/')
+  return `${config.public.apiBase}/${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`
+}
 
 async function loadDrafts() {
-  drafts.value = await $fetch(`${config.public.apiBase}/api/ocr/drafts`)
-}
-async function save(item: any) {
   try {
-    await $fetch(`${config.public.apiBase}/api/ocr/${item.id}`, {
-      method: "PUT",
-      body: item
-    })
-
-    drafts.value = drafts.value.filter(d => d.id !== item.id)
-
-    snackbar.value = true
-
-  } catch (err: any) {
-    alert(err.data?.error || "Gagal update")
+    const { $api } = useNuxtApp()
+    const data: any = await $api("/api/ocr/drafts")
+    drafts.value = data.map((d: any) => ({
+      ...d,
+      isSaving: false, zoomScale: 1, posX: 0, posY: 0, rotation: 0
+    }))
+  } catch (err) {
+    console.error("Gagal load data")
   }
 }
 
+async function save(item: any) {
+  item.isSaving = true
+  try {
+    const { $api } = useNuxtApp()
+    await $api(`/api/ocr/${item.id}`, { method: "PUT", body: item })
+    
+    notify(`Data ${item.nama} berhasil disimpan`)
 
-
-function goToUpload() {
-  router.push("/admin/upload")
-
+    // Hapus item dari daftar lokal
+    setTimeout(() => {
+      drafts.value = drafts.value.filter(d => d.id !== item.id)
+      
+      // LOGIKA REDIRECT OTOMATIS (Opsional)
+      // Jika ingin redirect otomatis saat data terakhir habis, aktifkan ini:
+      // if (drafts.value.length === 0) router.push('/upload')
+    }, 300)
+    
+  } catch (err: any) {
+    notify(err.data?.message || "Gagal simpan", "error")
+  } finally {
+    item.isSaving = false
+  }
 }
 
-onMounted(loadDrafts)
+// UI Handlers (Zoom, Drag, Rotate)
+function rotateImage(index: number) { drafts.value[index].rotation = (drafts.value[index].rotation + 90) % 360 }
+function handleWheel(e: WheelEvent, i: number) {
+  const delta = e.deltaY * -0.0012
+  const next = drafts.value[i].zoomScale + delta
+  if (next >= 1 && next <= 6) drafts.value[i].zoomScale = next
+}
+function startDrag(e: MouseEvent, i: number) {
+  if (drafts.value[i].zoomScale <= 1.05) return
+  isDragging.value = true
+  lastMousePos.value = { x: e.clientX, y: e.clientY }
+}
+function onDrag(e: MouseEvent, i: number) {
+  if (!isDragging.value) return
+  const item = drafts.value[i]
+  item.posX += (e.clientX - lastMousePos.value.x) / item.zoomScale
+  item.posY += (e.clientY - lastMousePos.value.y) / item.zoomScale
+  lastMousePos.value = { x: e.clientX, y: e.clientY }
+}
+function stopDrag() { isDragging.value = false }
+function resetView(i: number) {
+  Object.assign(drafts.value[i], { zoomScale: 1, posX: 0, posY: 0, rotation: 0 })
+}
+function notify(msg: string, type: 'success' | 'error' = 'success') {
+  snackbar.value = { show: true, message: msg, color: type }
+}
 </script>
 
+<style scoped>
+.tracking-tight { letter-spacing: -1px !important; }
+.status-dot-active { width: 6px; height: 6px; background-color: #4caf50; border-radius: 50%; box-shadow: 0 0 8px rgba(76, 175, 80, 0.4); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { transform: scale(0.95); opacity: 0.7; } 70% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.7; } }
+.viewer-bg { background-image: radial-gradient(#cbd5e1 0.5px, transparent 0.5px); background-size: 15px 15px; }
+.zoom-wrapper { width: 100%; height: 100%; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.image-container { width: 100%; height: 100%; transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); transform-origin: center center; }
+.zoom-level-badge { position: absolute; bottom: 12px; left: 12px; background: rgba(0, 0, 0, 0.6); color: white; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; }
+.ktp-image-render { filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.15)); }
+.z-index-2 { z-index: 2; }
+.shadow-soft { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important; }
+.border-s { border-left: 1px solid #f0f0f0 !important; }
+</style>

@@ -3,6 +3,7 @@ const cors = require("cors");
 const app = express();
 
 const ocrRoute = require("./routes/ocr");
+const authRoute = require("./routes/auth");
 
 
 
@@ -11,6 +12,7 @@ app.use(cors({
   origin: "http://localhost:3000"
 }));
 app.use("/api/ocr", ocrRoute);
+app.use("/api/auth", authRoute);
 app.use("/uploads", express.static("uploads"));
 
 
