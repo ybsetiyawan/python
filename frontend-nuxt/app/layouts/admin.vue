@@ -48,7 +48,7 @@
         />
         
         <v-list-item 
-          @click="exportExcel"
+          @click="showExportDialog = true"
           prepend-icon="mdi-file-export-outline" 
           color="primary"
           rounded="lg"
@@ -117,6 +117,40 @@
         <v-btn variant="text" @click="snackbar.show = false">Tutup</v-btn>
       </template>
     </v-snackbar>
+
+    <v-dialog v-model="showExportDialog" max-width="400">
+  <v-card>
+    <v-card-title class="font-weight-bold">
+      Password Ekspor Data
+    </v-card-title>
+
+    <v-card-text>
+      <v-text-field
+        v-model="exportPassword"
+        label="Masukkan Password"
+        type="password"
+        variant="outlined"
+        density="comfortable"
+        autofocus
+      />
+    </v-card-text>
+
+    <v-card-actions>
+      <v-spacer />
+      <v-btn variant="text" @click="showExportDialog = false">
+        Batal
+      </v-btn>
+      <v-btn 
+        color="primary" 
+        :loading="exportLoading"
+        @click="exportExcel"
+      >
+        Download
+      </v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+
   </v-app>
 </template>
 
@@ -124,6 +158,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useNuxtApp } from "#imports"
 import { useAuth } from "~~/app/composables/useAuth"
+const showExportDialog = ref(false)
+const exportPassword = ref("")
+const exportLoading = ref(false)
+
 
 const router = useRouter()
 const { logout: authLogout } = useAuth()
@@ -173,15 +211,55 @@ function logout() {
   authLogout() // Memanggil logout dari useAuth agar redirect konsisten
 }
 
+// async function exportExcel() {
+//   try {
+//     const { $api } = useNuxtApp()
+
+//     // Menggunakan $api agar interceptor auth/expired di api.ts berjalan
+//     const blob: Blob = await $api("/api/ocr/export", {
+//       method: "GET",
+//       responseType: "blob"
+//     })
+
+//     const url = window.URL.createObjectURL(blob)
+//     const a = document.createElement("a")
+//     a.href = url
+//     a.download = `ktp_export_${new Date().getTime()}.xlsx`
+//     document.body.appendChild(a)
+//     a.click()
+    
+//     window.URL.revokeObjectURL(url)
+//     document.body.removeChild(a)
+    
+//     notify("Data berhasil diekspor ke Excel", "success")
+
+//   } catch (err: any) {
+//     // Abaikan jika error 401 karena sudah ditangani api.ts (redirect logout)
+//     if (err.status !== 401) {
+//       console.error("Gagal export excel:", err)
+//       notify(err.data?.message || "Gagal mengunduh file Excel", "error")
+//     }
+//   }
+// }
+
 async function exportExcel() {
+  if (!exportPassword.value) {
+    notify("Password tidak boleh kosong", "error")
+    return
+  }
+
+  exportLoading.value = true
+
   try {
     const { $api } = useNuxtApp()
 
-    // Menggunakan $api agar interceptor auth/expired di api.ts berjalan
-    const blob: Blob = await $api("/api/ocr/export", {
-      method: "GET",
-      responseType: "blob"
-    })
+    const blob: Blob = await $api(
+      `/api/ocr/export?password=${encodeURIComponent(exportPassword.value)}`,
+      {
+        method: "GET",
+        responseType: "blob"
+      }
+    )
 
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -189,20 +267,26 @@ async function exportExcel() {
     a.download = `ktp_export_${new Date().getTime()}.xlsx`
     document.body.appendChild(a)
     a.click()
-    
+
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
-    
-    notify("Data berhasil diekspor ke Excel", "success")
+
+    notify("Data berhasil diekspor", "success")
+
+    showExportDialog.value = false
+    exportPassword.value = ""
 
   } catch (err: any) {
-    // Abaikan jika error 401 karena sudah ditangani api.ts (redirect logout)
-    if (err.status !== 401) {
-      console.error("Gagal export excel:", err)
-      notify(err.data?.message || "Gagal mengunduh file Excel", "error")
+    if (err.status === 403) {
+      notify("Password export tidak valid", "error")
+    } else if (err.status !== 401) {
+      notify("Gagal mengunduh file Excel", "error")
     }
+  } finally {
+    exportLoading.value = false
   }
 }
+
 </script>
 
 <style scoped>

@@ -1,10 +1,11 @@
+require("dotenv").config(); // 🔥 HARUS PALING ATAS
 const express = require("express");
 const cors = require("cors");
 const app = express();
 
 const ocrRoute = require("./routes/ocr");
 const authRoute = require("./routes/auth");
-const exportRoute = require("./routes/ocr");
+// const exportRoute = require("./routes/ocr");
 
 
 
@@ -14,7 +15,7 @@ app.use(cors({
 }));
 app.use("/api/ocr", ocrRoute);
 app.use("/api/auth", authRoute);
-app.use("/api/ocr", exportRoute)
+// app.use("/api/ocr", exportRoute)
 app.use("/uploads", express.static("uploads"));
 
 

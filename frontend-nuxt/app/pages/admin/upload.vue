@@ -212,6 +212,9 @@ async function upload() {
       body: formData
     })
 
+    // ==============================
+    // HANDLE PARTIAL SUCCESS
+    // ==============================
     if (res.failed > 0) {
       res.results.forEach((item: any) => {
         if (item.error) {
@@ -222,13 +225,27 @@ async function upload() {
       if (res.success > 0) {
         showGoDraftButton.value = true
       }
+
       return
     }
 
+    // ALL SUCCESS
     await navigateTo("/admin/drafts")
 
   } catch (err: any) {
-    errorList.value = ["Gagal menghubungi server. Pastikan koneksi dan backend aktif."]
+    // ==============================
+    // 🔥 HANDLE BACKEND ERROR 400/500
+    // ==============================
+    if (err?.data?.error) {
+      errorList.value = [err.data.error]
+    } else if (err?.response?._data?.error) {
+      // fallback jika pakai $fetch native
+      errorList.value = [err.response._data.error]
+    } else {
+      errorList.value = [
+        "Gagal menghubungi server. Pastikan koneksi dan backend aktif."
+      ]
+    }
   } finally {
     loading.value = false
   }
