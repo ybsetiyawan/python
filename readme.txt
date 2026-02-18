@@ -1,3 +1,6 @@
+env sample
+EXPORT_PASSWORD=edp2026secure
+
 cara running python,
 cd ocr-paddle
 
