@@ -139,7 +139,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const res = await $api("/api/ocr/dashboard", {
+    const res = await $api("/ocr/dashboard", {
       method: "GET"
     })
 

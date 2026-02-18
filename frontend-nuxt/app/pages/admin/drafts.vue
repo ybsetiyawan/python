@@ -170,16 +170,18 @@ const isValid = (item: any) => {
   return (item.nik?.length === 16) && (item.nama?.trim().length > 0)
 }
 
+
 function getImageUrl(path: string) {
   if (!path) return ''
   const cleanPath = path.replace(/\\/g, '/')
-  return `${config.public.apiBase}/${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`
+  return `${config.public.fileBase}/${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`
 }
+
 async function loadDrafts() {
   try {
     const { $api } = useNuxtApp()
     // Jika token expired, request ini akan memicu redirect otomatis dari api.ts
-    const data: any = await $api("/api/ocr/drafts")
+    const data: any = await $api("/ocr/drafts")
     
     drafts.value = data.map((d: any) => ({
       ...d,
@@ -204,7 +206,7 @@ async function save(item: any) {
     const { $api } = useNuxtApp()
     
     // Request PUT untuk update data
-    await $api(`/api/ocr/${item.id}`, { 
+    await $api(`/ocr/${item.id}`, { 
       method: "PUT", 
       body: item 
     })

@@ -49,58 +49,6 @@ const upload = multer({
   },
 });
 
-/* =========================
-   EXPORT VERIFIED
-========================= */
-
-// router.get("/export", authMiddleware, async (req, res) => {
-//   try {
-//     const result = await pool.query(`
-//       SELECT
-//         k.original_filename,
-//         k.nik,
-//         k.nama,
-//         k.status,
-//         k.updated_at,
-//         u.name AS user_name,
-//         u.email AS user_email
-//       FROM ktp_scans k
-//       JOIN users u ON u.id = k.user_id
-//       WHERE k.status = 'verified'
-//       ORDER BY k.updated_at DESC
-//     `);
-
-//     const workbook = new ExcelJS.Workbook();
-//     const worksheet = workbook.addWorksheet("KTP Data");
-
-//     worksheet.columns = [
-//       { header: "Original Filename", key: "original_filename", width: 30 },
-//       { header: "NIK", key: "nik", width: 20 },
-//       { header: "Nama", key: "nama", width: 25 },
-//       { header: "Status", key: "status", width: 15 },
-//       { header: "Updated At", key: "updated_at", width: 25 },
-//       { header: "User Name", key: "user_name", width: 20 },
-//       { header: "User Email", key: "user_email", width: 25 },
-//     ];
-
-//     result.rows.forEach((row) => worksheet.addRow(row));
-
-//     res.setHeader(
-//       "Content-Type",
-//       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-//     );
-//     res.setHeader(
-//       "Content-Disposition",
-//       "attachment; filename=ktp_export.xlsx"
-//     );
-
-//     await workbook.xlsx.write(res);
-//     res.end();
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: "Gagal export data" });
-//   }
-// });
 
 router.get("/export", authMiddleware, async (req, res) => {
   try {
@@ -241,9 +189,14 @@ router.post(
         );
       });
 
-      const response = await axios.post("http://localhost:8000/ocr", formData, {
-        headers: formData.getHeaders(),
-      });
+      const response = await axios.post(
+        `${process.env.OCR_BASE_URL}/ocr`,
+        formData,
+        {
+          headers: formData.getHeaders(),
+          timeout: 60000,
+        },
+      );
 
       const ocrResults = response.data.results;
 
@@ -266,18 +219,16 @@ router.post(
             continue;
           }
 
-          // CEK DUPLIKAT BERDASARKAN NIK
-          const duplicate = await pool.query(
-            "SELECT id FROM ktp_scans WHERE nik = $1",
-            [nik],
+          const existing = await pool.query(
+            "SELECT id FROM ktp_scans WHERE original_filename = $1",
+            [file.originalname],
           );
 
-          if (duplicate.rows.length > 0) {
-            fs.unlinkSync(file.path);
+          if (existing.rows.length > 0) {
             failed++;
             results.push({
               filename: file.originalname,
-              error: "NIK sudah terdaftar",
+              error: "File sudah pernah diupload",
             });
             continue;
           }
@@ -359,7 +310,7 @@ router.get("/drafts", authMiddleware, async (req, res) => {
 
     const rows = result.rows.map((row) => ({
       ...row,
-      image_url: `http://localhost:8090/${row.image_path.replace(/\\/g, "/")}`,
+      image_url: `${process.env.BASE_URL}/${row.image_path.replace(/\\/g, "/")}`,
     }));
 
     res.json(rows);
@@ -380,17 +331,6 @@ router.put("/:id", authMiddleware, async (req, res) => {
     if (!nik || !/^\d{16}$/.test(nik)) {
       return res.status(400).json({
         error: "NIK tidak valid (harus 16 digit angka)",
-      });
-    }
-
-    const duplicate = await pool.query(
-      "SELECT id FROM ktp_scans WHERE nik = $1 AND id != $2",
-      [nik, id],
-    );
-
-    if (duplicate.rows.length > 0) {
-      return res.status(400).json({
-        error: "NIK sudah digunakan data lain",
       });
     }
 

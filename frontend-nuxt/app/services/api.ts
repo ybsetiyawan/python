@@ -1,7 +1,15 @@
-export const API_BASE_URL = "http://localhost:8090/api"; // sesuaikan port backendmu
+// export const API_BASE_URL = "http://localhost:8090/api"; // sesuaikan port backendmu
+
+export function getApiBase() {
+  const config = useRuntimeConfig()
+  return config.public.apiBase || "/api"
+}
+
 
 export async function adminLogin(email: string, password: string) {
-  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+  const config = useRuntimeConfig()
+
+  const res = await fetch(`${config.public.apiBase}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -14,5 +22,5 @@ export async function adminLogin(email: string, password: string) {
     throw new Error(error.message || "Login gagal");
   }
 
-  return res.json(); // { token: "...", admin: {...} }
+  return res.json();
 }

@@ -1,0 +1,37 @@
+EXPORT_PASSWORD=edp2026secure
+
+PORT=8090
+
+DB_USER=postgres
+DB_HOST=localhost
+DB_NAME=ocr_ktp
+DB_PASSWORD=pakepake
+DB_PORT=5432
+
+CORS_ORIGIN=http://localhost:3000
+
+BASE_URL=http://localhost:8090
+
+OCR_BASE_URL=http://localhost:8000
+
+
+productuion
+
+EXPORT_PASSWORD=edp2026secure
+
+PORT=8090
+
+DB_USER=postgres
+DB_HOST=localhost
+DB_NAME=ocr_ktp
+DB_PASSWORD=pakepake
+DB_PORT=5432
+
+# Karena semua lewat nginx, ini cukup:
+CORS_ORIGIN=http://10.126.101.52
+
+# Kalau semua lewat nginx, sebenarnya tidak perlu BASE_URL lagi
+BASE_URL=http://10.126.101.52
+
+# OCR service internal
+OCR_BASE_URL=http://127.0.0.1:8000

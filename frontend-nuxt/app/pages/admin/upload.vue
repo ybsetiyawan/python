@@ -149,48 +149,6 @@ function removeImage(index: number) {
   previews.value.splice(index, 1)
 }
 
-// async function upload() {
-//   if (!files.value.length) return
-
-//   loading.value = true
-//   errorList.value = []
-//   showGoDraftButton.value = false
-
-//   const formData = new FormData()
-//   files.value.forEach(file =>
-//     formData.append("files", file)
-//   )
-
-//   try {
-//     const res: any = await $fetch(
-//       `${config.public.apiBase}/api/ocr`,
-//       {
-//         method: "POST",
-//         body: formData
-//       }
-//     )
-
-//     if (res.failed > 0) {
-//       res.results.forEach((item: any) => {
-//         if (item.error) {
-//           errorList.value.push(`${item.filename}: ${item.error}`)
-//         }
-//       })
-
-//       if (res.success > 0) {
-//         showGoDraftButton.value = true
-//       }
-//       return
-//     }
-
-//     await navigateTo("/admin/drafts")
-
-//   } catch (err: any) {
-//     errorList.value = ["Gagal menghubungi server. Pastikan koneksi dan backend aktif."]
-//   } finally {
-//     loading.value = false
-//   }
-// }
 
 async function upload() {
   if (!files.value.length) return
@@ -207,7 +165,7 @@ async function upload() {
   try {
     const { $api } = useNuxtApp()
 
-    const res: any = await $api("/api/ocr", {
+    const res: any = await $api("/ocr", {
       method: "POST",
       body: formData
     })

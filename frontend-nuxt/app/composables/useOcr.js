@@ -9,7 +9,7 @@ export const useOcr = () => {
     }
 
     const { data, error } = await useFetch(
-      `${config.public.apiBase}/api/ocr`,
+      `${config.public.apiBase}/ocr`,
       {
         method: "POST",
         body: formData

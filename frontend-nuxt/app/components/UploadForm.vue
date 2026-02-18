@@ -33,7 +33,7 @@ async function upload() {
   })
 
   try {
-    const res = await $fetch(`${config.public.apiBase}/api/ocr`, {
+    const res = await $fetch(`${config.public.apiBase}/ocr`, {
       method: "POST",
       body: formData
     })

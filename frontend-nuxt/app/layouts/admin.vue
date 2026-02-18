@@ -253,13 +253,14 @@ async function exportExcel() {
   try {
     const { $api } = useNuxtApp()
 
+
     const blob: Blob = await $api(
-      `/api/ocr/export?password=${encodeURIComponent(exportPassword.value)}`,
-      {
-        method: "GET",
-        responseType: "blob"
-      }
-    )
+  `/ocr/export?password=${encodeURIComponent(exportPassword.value)}`,
+  {
+    method: "GET",
+    responseType: "blob"
+  }
+)
 
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
