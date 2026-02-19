@@ -73,7 +73,8 @@ router.get("/export", authMiddleware, async (req, res) => {
         k.status,
         k.updated_at,
         u.name AS user_name,
-        u.email AS user_email
+        u.email AS user_email,
+        u.ip_address
       FROM ktp_scans k
       JOIN users u ON u.id = k.user_id
       WHERE k.status = 'verified'
@@ -91,6 +92,7 @@ router.get("/export", authMiddleware, async (req, res) => {
       { header: "Updated At", key: "updated_at", width: 25 },
       { header: "User Name", key: "user_name", width: 20 },
       { header: "User Email", key: "user_email", width: 25 },
+      { header: "IP Address", key: "ip_address", width: 25 },
     ];
 
     result.rows.forEach((row) => worksheet.addRow(row));
@@ -233,12 +235,8 @@ router.post(
             continue;
           }
 
-          const ipAddress =
-  req.headers["x-forwarded-for"]?.split(",")[0] ||
-  req.socket.remoteAddress ||
-  null;
-
-console.log("IP USER:", ipAddress);
+          const ipAddress = req.ip
+          console.log("IP USER:", ipAddress);
 
 
           await pool.query(
