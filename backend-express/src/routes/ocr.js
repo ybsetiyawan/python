@@ -49,7 +49,6 @@ const upload = multer({
   },
 });
 
-
 router.get("/export", authMiddleware, async (req, res) => {
   try {
     const { password } = req.query;
@@ -67,18 +66,19 @@ router.get("/export", authMiddleware, async (req, res) => {
 
     const result = await pool.query(`
       SELECT
-        k.original_filename,
-        k.nik,
-        k.nama,
-        k.status,
-        k.updated_at,
-        k.ip_address,
-        u.name AS user_name,
-        u.email AS user_email
-      FROM ktp_scans k
-      JOIN users u ON u.id = k.user_id
-      WHERE k.status = 'verified'
-      ORDER BY k.updated_at DESC
+  k.original_filename,
+  k.nik,
+  k.nama,
+  k.status,
+  k.updated_at,
+  k.ip_address,
+  u.name AS user_name,
+  u.email AS user_email
+FROM ktp_scans k
+JOIN users u ON u.id = k.user_id
+WHERE k.status = 'verified'
+ORDER BY k.updated_at DESC
+
     `);
 
     const workbook = new ExcelJS.Workbook();
@@ -235,9 +235,8 @@ router.post(
             continue;
           }
 
-          const ipAddress = req.ip
+          const ipAddress = req.ip;
           console.log("IP USER:", ipAddress);
-
 
           await pool.query(
             `INSERT INTO ktp_scans(
