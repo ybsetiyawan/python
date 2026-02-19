@@ -26,10 +26,10 @@
 
                     <v-form @submit.prevent="handleLogin">
                         <div class="mb-6">
-                            <label class="text-subtitle-2 font-weight-black text-slate-700 ml-1">USERNAME</label>
-                            <v-text-field v-model="email" placeholder="Enter your username" variant="outlined"
+                            <label class="text-subtitle-2 font-weight-black text-slate-700 ml-1">EMAIL</label>
+                            <v-text-field v-model="email" placeholder="Enter your email account" variant="outlined"
                                 density="comfortable" rounded="lg" color="primary" class="mt-2 custom-field"
-                                prepend-inner-icon="mdi-account-key" hide-details />
+                                prepend-inner-icon="mdi-email-alert-outline" hide-details />
                         </div>
 
                         <div class="mb-8">
