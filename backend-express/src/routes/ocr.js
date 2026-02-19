@@ -72,9 +72,9 @@ router.get("/export", authMiddleware, async (req, res) => {
         k.nama,
         k.status,
         k.updated_at,
+        k.ip_address,
         u.name AS user_name,
-        u.email AS user_email,
-        u.ip_address
+        u.email AS user_email
       FROM ktp_scans k
       JOIN users u ON u.id = k.user_id
       WHERE k.status = 'verified'
