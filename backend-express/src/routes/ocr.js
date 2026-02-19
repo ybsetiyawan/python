@@ -233,22 +233,32 @@ router.post(
             continue;
           }
 
+          const ipAddress =
+  req.headers["x-forwarded-for"]?.split(",")[0] ||
+  req.socket.remoteAddress ||
+  null;
+
+console.log("IP USER:", ipAddress);
+
+
           await pool.query(
             `INSERT INTO ktp_scans(
               id,user_id,original_filename,image_path,
+              ip_address,
               nik,nama,tempat_tgl_lahir,jenis_kelamin,
               alamat,rt_rw,kecamatan,agama,
               status_perkawinan,pekerjaan,kewarganegaraan,
               berlaku_hingga,raw_response,status
             )
             VALUES(
-              $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
+              $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
             )`,
             [
               uuidv4(),
               req.user.id,
               file.originalname,
               file.path,
+              ipAddress,
               data.nik,
               data.nama,
               data.tempat_tgl_lahir,
