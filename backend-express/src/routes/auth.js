@@ -14,32 +14,51 @@ REGISTER USER
 */
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    // 1. Pastikan data selalu dalam bentuk Array agar logikanya konsisten
+    const users = Array.isArray(req.body) ? req.body : [req.body];
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: "Semua field wajib diisi" });
+    // 2. Validasi awal: Cek apakah semua field di setiap user ada
+    for (const user of users) {
+      if (!user.name || !user.email || !user.password) {
+        return res.status(400).json({ error: "Semua field wajib diisi (ada data tidak lengkap)" });
+      }
     }
 
-    // Cek email sudah ada?
-    const existing = await pool.query(
-      "SELECT id FROM users WHERE email = $1",
-      [email]
-    );
+    const results = [];
 
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ error: "Email sudah terdaftar" });
+    // 3. Proses setiap user dalam loop
+    for (const user of users) {
+      const { name, email, password } = user;
+
+      // Cek email sudah ada?
+      const existing = await pool.query(
+        "SELECT id FROM users WHERE email = $1",
+        [email]
+      );
+
+      if (existing.rows.length > 0) {
+        // Jika batch, kita bisa skip atau beri error. Di sini kita beri error agar data bersih.
+        return res.status(400).json({ error: `Email ${email} sudah terdaftar` });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Insert ke database
+      await pool.query(
+        `INSERT INTO users(id, name, email, password)
+         VALUES($1, $2, $3, $4)`,
+        [uuidv4(), name, email, hashedPassword]
+      );
+      
+      results.push(email);
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await pool.query(
-      `INSERT INTO users(id, name, email, password)
-       VALUES($1,$2,$3,$4)`,
-      [uuidv4(), name, email, hashedPassword]
-    );
-
-    return res.json({ message: "User berhasil dibuat" });
+    return res.json({ 
+      message: "Proses berhasil", 
+      count: results.length,
+      users: results 
+    });
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
