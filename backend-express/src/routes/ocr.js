@@ -196,7 +196,7 @@ router.post(
         formData,
         {
           headers: formData.getHeaders(),
-          timeout: 60000,
+          timeout: 300000,
         },
       );
 
