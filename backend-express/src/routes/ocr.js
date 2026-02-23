@@ -236,7 +236,7 @@ router.post(
           }
 
           const ipAddress = req.ip;
-          console.log("IP USER:", ipAddress);
+          // console.log("IP USER:", ipAddress);
 
           await pool.query(
             `INSERT INTO ktp_scans(

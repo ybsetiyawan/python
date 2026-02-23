@@ -19,7 +19,7 @@
 
       <v-file-input 
         :model-value="files" 
-        multiple 
+        :disabled="loading"  multiple
         accept="image/*" 
         label="Pilih File KTP"
         prepend-inner-icon="mdi-camera" 
@@ -51,7 +51,7 @@
                     icon="mdi-delete" 
                     size="small" 
                     title="Hapus Gambar"
-                    @click.stop="removeImage(i)"
+                    :disabled="loading" @click.stop="removeImage(i)"
                   ></v-btn>
                 </v-overlay>
 
