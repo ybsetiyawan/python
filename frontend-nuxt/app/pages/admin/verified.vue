@@ -25,13 +25,13 @@
 
       <v-text-field
         v-model="search"
-        label="Search NIK / Nama"
+        label="Search File Name / NIK / Nama"
         density="compact"
         prepend-inner-icon="mdi-magnify"
         hide-details
         clearable
         variant="outlined"
-        style="max-width:280px"
+        style="max-width:380px"
       />
 
     </v-card-title>

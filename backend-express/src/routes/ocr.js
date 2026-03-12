@@ -371,11 +371,12 @@ router.get("/drafts", authMiddleware, async (req, res) => {
 ========================= */
 router.get("/verified", authMiddleware, async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search || "";
 
-    const offset = (page - 1) * limit;
+    const page = parseInt(req.query.page) || 1
+    const limit = parseInt(req.query.limit) || 10
+    const search = req.query.search || ""
+
+    const offset = (page - 1) * limit
 
     const result = await pool.query(
       `
@@ -392,12 +393,14 @@ router.get("/verified", authMiddleware, async (req, res) => {
       AND (
         nik ILIKE $2
         OR nama ILIKE $2
+        OR original_filename ILIKE $2
       )
       ORDER BY updated_at DESC
       LIMIT $3 OFFSET $4
       `,
-      [req.user.id, `%${search}%`, limit, offset],
-    );
+      [req.user.id, `%${search}%`, limit, offset]
+    )
+
 
     const total = await pool.query(
       `
@@ -408,23 +411,30 @@ router.get("/verified", authMiddleware, async (req, res) => {
       AND (
         nik ILIKE $2
         OR nama ILIKE $2
+        OR original_filename ILIKE $2
       )
       `,
-      [req.user.id, `%${search}%`],
-    );
+      [req.user.id, `%${search}%`]
+    )
+
 
     res.json({
       data: result.rows,
       pagination: {
         page,
         limit,
-        total: parseInt(total.rows[0].count),
-      },
-    });
+        total: parseInt(total.rows[0].count)
+      }
+    })
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    res.status(500).json({
+      error: err.message
+    })
+
   }
-});
+})
 
 /* =========================
    UPDATE & VERIFY

@@ -149,6 +149,11 @@ import { ref, onMounted } from "vue"
 import { useRouter, useNuxtApp, useRuntimeConfig } from "#imports";
 import { useAuth } from "~~/app/composables/useAuth";
 
+
+definePageMeta({
+  layout: "admin"
+})
+
 const config = useRuntimeConfig()
 const router = useRouter();
 const { getToken } = useAuth();
