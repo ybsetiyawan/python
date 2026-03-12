@@ -301,6 +301,46 @@ router.post(
   },
 );
 
+
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+
+    const id = req.params.id
+    const userId = req.user.id
+
+    // cek apakah data milik user
+    const check = await pool.query(
+      "SELECT id FROM ktp_scans WHERE id = $1 AND user_id = $2",
+      [id, userId]
+    )
+
+    if (check.rows.length === 0) {
+      return res.status(404).json({
+        message: "Data tidak ditemukan atau bukan milik anda"
+      })
+    }
+
+    // hapus data
+    await pool.query(
+      "DELETE FROM ktp_scans WHERE id = $1",
+      [id]
+    )
+
+    return res.json({
+      message: "Data berhasil dihapus"
+    })
+
+  } catch (err) {
+
+    console.error(err)
+
+    res.status(500).json({
+      message: "Gagal menghapus data"
+    })
+
+  }
+})
+
 /* =========================
    GET DRAFT USER
 ========================= */
@@ -321,6 +361,66 @@ router.get("/drafts", authMiddleware, async (req, res) => {
     }));
 
     res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* =========================
+   GET VERIFIED USER
+========================= */
+router.get("/verified", authMiddleware, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+
+    const offset = (page - 1) * limit;
+
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        original_filename,
+        nik,
+        nama,
+        status,
+        updated_at + interval '7 hour' AS updated_at
+      FROM ktp_scans
+      WHERE status = 'verified'
+      AND user_id = $1
+      AND (
+        nik ILIKE $2
+        OR nama ILIKE $2
+      )
+      ORDER BY updated_at DESC
+      LIMIT $3 OFFSET $4
+      `,
+      [req.user.id, `%${search}%`, limit, offset],
+    );
+
+    const total = await pool.query(
+      `
+      SELECT COUNT(*)
+      FROM ktp_scans
+      WHERE status = 'verified'
+      AND user_id = $1
+      AND (
+        nik ILIKE $2
+        OR nama ILIKE $2
+      )
+      `,
+      [req.user.id, `%${search}%`],
+    );
+
+    res.json({
+      data: result.rows,
+      pagination: {
+        page,
+        limit,
+        total: parseInt(total.rows[0].count),
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

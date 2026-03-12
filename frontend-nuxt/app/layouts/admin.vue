@@ -69,6 +69,12 @@
         />
 
         <v-list-item
+          prepend-icon="mdi-check-circle"
+          title="Verified"
+          to="/admin/verified"
+        />
+
+        <v-list-item
           to="/admin/drafts"
           prepend-icon="mdi-file-check-outline"
           color="primary"
