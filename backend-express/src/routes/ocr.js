@@ -366,6 +366,75 @@ router.get("/drafts", authMiddleware, async (req, res) => {
   }
 });
 
+// GET DRAFTS ALL
+router.get("/drafts/all", authMiddleware, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || "";
+
+    const offset = (page - 1) * limit;
+
+    // Query data draft dengan search termasuk created_by
+    const result = await pool.query(
+      `
+      SELECT
+        k.id,
+        k.nama,
+        k.nik,
+        k.original_filename,
+        k.status,
+        k.updated_at + interval '7 hour' AS updated_at,
+        u.name AS created_by
+      FROM ktp_scans k
+      LEFT JOIN users u ON k.user_id = u.id
+      WHERE k.status = 'draft'
+        AND (
+          k.nama ILIKE $1
+          OR k.original_filename ILIKE $1
+          OR u.name ILIKE $1
+        )
+      ORDER BY k.updated_at ASC NULLS LAST
+      LIMIT $2 OFFSET $3
+      `,
+      [`%${search}%`, limit, offset]
+    );
+
+    // Hitung total data untuk pagination
+    const total = await pool.query(
+      `
+      SELECT COUNT(*)
+      FROM ktp_scans k
+      LEFT JOIN users u ON k.user_id = u.id
+      WHERE k.status = 'draft'
+        AND (
+          k.nama ILIKE $1
+          OR k.original_filename ILIKE $1
+          OR u.name ILIKE $1
+        )
+      `,
+      [`%${search}%`]
+    );
+
+    // Mapping created_by jika null
+    const rows = result.rows.map((row) => ({
+      ...row,
+      created_by: row.created_by || "System"
+    }));
+
+    res.json({
+      data: rows,
+      pagination: {
+        page,
+        limit,
+        total: parseInt(total.rows[0].count)
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 /* =========================
    GET VERIFIED USER
 ========================= */

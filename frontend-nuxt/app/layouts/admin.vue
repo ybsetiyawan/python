@@ -72,7 +72,15 @@
           prepend-icon="mdi-check-circle"
           title="Verified"
           to="/admin/verified"
-        />
+          />
+          <v-list-item
+            to="/admin/draftsall"
+            prepend-icon="mdi-file-alert"
+            color="primary"
+            rounded="lg"
+            title="Draft"
+            class="mb-1"
+          />
 
         <v-list-item
           to="/admin/drafts"
@@ -82,6 +90,7 @@
           title="Verifikasi Draft"
           class="mb-1"
         />
+
 
         <v-list-item
           @click="showExportDialog = true"

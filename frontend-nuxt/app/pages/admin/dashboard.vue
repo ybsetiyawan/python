@@ -85,7 +85,7 @@
     <v-divider class="my-12"></v-divider>
     <div class="footer">
       <v-icon size="16" class="mr-1">mdi-shield-check</v-icon>
-      EDP SBY ©2026 – Sistem Verifikasi Digital
+      EDPSBY ©2026 – Sistem Verifikasi Digital
     </div>
 
   </div>

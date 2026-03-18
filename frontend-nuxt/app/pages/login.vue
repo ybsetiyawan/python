@@ -60,7 +60,7 @@
 
                     <div class="mt-16 text-caption text-slate-400 d-flex align-center">
                         <v-icon size="14" class="mr-2">mdi-shield-check</v-icon>
-                        Ybs - @EDP SURABAYA &bull; &copy; 2026
+                        Ybs - @EDPSBY &bull; &copy; 2026
                     </div>
                 </div>
             </v-col>
