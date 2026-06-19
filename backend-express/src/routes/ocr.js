@@ -156,7 +156,7 @@ router.post(
   "/",
   authMiddleware,
   (req, res, next) => {
-    upload.array("files", 5)(req, res, function (err) {
+    upload.array("files", 10)(req, res, function (err) {
       if (err instanceof multer.MulterError) {
         if (err.code === "LIMIT_FILE_SIZE") {
           return res.status(400).json({

@@ -3,7 +3,7 @@
     <v-card elevation="3" class="pa-6 rounded-lg">
       <v-card-title class="text-h5 font-weight-bold mb-4 d-flex align-center">
         <v-icon start color="primary">mdi-card-account-details</v-icon>
-        Upload KTP (Max 5 File)
+        Upload KTP (Max 10 File)
       </v-card-title>
 
       <v-alert v-if="errorList.length" type="error" variant="tonal" class="mb-4" closable>
@@ -126,7 +126,7 @@ function handleFiles(selected: File | File[] | null) {
   }
 
   const arr = Array.isArray(selected) ? selected : [selected]
-  const limited = arr.slice(0, 5)
+  const limited = arr.slice(0, 10)
 
   clearPreviews()
   files.value = limited

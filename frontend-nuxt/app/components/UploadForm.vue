@@ -13,7 +13,7 @@ function handleFiles(selected: File[] | File) {
 
   const arr = Array.isArray(selected) ? selected : [selected]
 
-  const limited = arr.slice(0, 5)
+  const limited = arr.slice(0, 10)
   files.value = limited
 
   previews.value = limited.map(file =>
@@ -52,7 +52,7 @@ async function upload() {
   <v-container class="py-10">
     <v-card elevation="4" class="pa-6">
       <v-card-title class="text-h5 font-weight-bold">
-        Upload KTP (Max 5 File)
+        Upload KTP (Max 10 File)
       </v-card-title>
 
       <v-card-text>

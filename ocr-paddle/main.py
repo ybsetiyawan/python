@@ -124,8 +124,8 @@ def extract_ktp_data(result):
 @app.post("/ocr")
 async def read_images(files: List[UploadFile] = File(...)):
 
-    if len(files) > 5:
-        return {"error": "Maksimal 5 file saja"}
+    if len(files) > 10:
+        return {"error": "Maksimal 10 file saja"}
 
     results = []
     success = 0
