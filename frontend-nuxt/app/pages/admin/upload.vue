@@ -82,12 +82,12 @@ definePageMeta({
   layout: "admin"
 })
 
-import { ref, onBeforeUnmount } from "vue"
+import { ref, onBeforeUnmount, onMounted } from "vue"
 import { useRouter } from "#imports";
 import { useAuth } from "~~/app/composables/useAuth";
-const { $api } = useNuxtApp()
+// const { $api } = useNuxtApp()
 
-const config = useRuntimeConfig()
+// const config = useRuntimeConfig()
 
 const files = ref<File[]>([])
 const previews = ref<string[]>([])
@@ -117,20 +117,57 @@ function clearPreviews() {
   })
 }
 
-function handleFiles(selected: File | File[] | null) {
-  if (!selected || (Array.isArray(selected) && selected.length === 0)) {
+// function handleFiles(selected: File | File[] | null) {
+//   if (!selected || (Array.isArray(selected) && selected.length === 0)) {
+//     clearPreviews()
+//     files.value = []
+//     previews.value = []
+//     return
+//   }
+
+//   const arr = Array.isArray(selected) ? selected : [selected]
+//   const limited = arr.slice(0, 10)
+
+//   clearPreviews()
+//   files.value = limited
+//   previews.value = limited.map(file => URL.createObjectURL(file))
+// }
+
+async function handleFiles(
+  selected: File | File[] | null
+) {
+
+  if (!selected) {
     clearPreviews()
     files.value = []
     previews.value = []
     return
   }
 
-  const arr = Array.isArray(selected) ? selected : [selected]
+  const arr = Array.isArray(selected)
+    ? selected
+    : [selected]
+
   const limited = arr.slice(0, 10)
 
   clearPreviews()
-  files.value = limited
-  previews.value = limited.map(file => URL.createObjectURL(file))
+
+  const processedFiles: File[] = []
+  const processedPreviews: string[] = []
+
+  for (const file of limited) {
+
+    const bwFile = await preprocessImage(file)
+
+    processedFiles.push(bwFile)
+
+    processedPreviews.push(
+      URL.createObjectURL(bwFile)
+    )
+  }
+
+  files.value = processedFiles
+  previews.value = processedPreviews
 }
 
 // Menghapus satu gambar tertentu
@@ -150,6 +187,83 @@ function removeImage(index: number) {
 }
 
 
+async function preprocessImage(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas")
+      const ctx = canvas.getContext("2d")
+
+      if (!ctx) {
+        reject(new Error("Canvas tidak tersedia"))
+        return
+      }
+
+      canvas.width = img.width
+      canvas.height = img.height
+
+      ctx.drawImage(img, 0, 0)
+
+      const imageData = ctx.getImageData(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      )
+
+      const data = imageData.data
+
+      for (let i = 0; i < data.length; i += 4) {
+
+      const gray =
+  data[i]! * 0.299 +
+  data[i + 1]! * 0.587 +
+  data[i + 2]! * 0.114
+
+const contrast = 1.35
+
+const enhanced =
+  (gray - 128) * contrast + 128
+
+const finalGray = Math.max(
+  0,
+  Math.min(255, enhanced)
+)
+
+data[i] = finalGray
+data[i + 1] = finalGray
+data[i + 2] = finalGray
+      }
+
+      ctx.putImageData(imageData, 0, 0)
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Gagal membuat blob"))
+            return
+          }
+
+          resolve(
+            new File(
+              [blob],
+              file.name,
+              { type: "image/jpeg" }
+            )
+          )
+        },
+        "image/jpeg",
+        0.95
+      )
+    }
+
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+
 async function upload() {
   if (!files.value.length) return
 
@@ -158,9 +272,14 @@ async function upload() {
   showGoDraftButton.value = false
 
   const formData = new FormData()
-  files.value.forEach(file =>
-    formData.append("files", file)
-  )
+
+  files.value.forEach(file => {
+    formData.append(
+      "files",
+      file,
+      file.name
+    )
+  })
 
   try {
     const { $api } = useNuxtApp()
@@ -170,13 +289,12 @@ async function upload() {
       body: formData
     })
 
-    // ==============================
-    // HANDLE PARTIAL SUCCESS
-    // ==============================
     if (res.failed > 0) {
       res.results.forEach((item: any) => {
         if (item.error) {
-          errorList.value.push(`${item.filename}: ${item.error}`)
+          errorList.value.push(
+            `${item.filename}: ${item.error}`
+          )
         }
       })
 
@@ -187,23 +305,20 @@ async function upload() {
       return
     }
 
-    // ALL SUCCESS
     await navigateTo("/admin/drafts")
 
   } catch (err: any) {
-    // ==============================
-    // 🔥 HANDLE BACKEND ERROR 400/500
-    // ==============================
+
     if (err?.data?.error) {
       errorList.value = [err.data.error]
     } else if (err?.response?._data?.error) {
-      // fallback jika pakai $fetch native
       errorList.value = [err.response._data.error]
     } else {
       errorList.value = [
         "Gagal menghubungi server. Pastikan koneksi dan backend aktif."
       ]
     }
+
   } finally {
     loading.value = false
   }
