@@ -880,3 +880,5 @@ async def read_images(files: List[UploadFile] = File(...)):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+    #ok
