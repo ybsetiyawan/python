@@ -105,7 +105,7 @@
                 <div class="position-absolute" style="bottom: 40px; right: 40px;">
                     <v-chip color="blue" class="shadow-sm font-weight-bold" size="large">
                         <v-icon start color="success">mdi-check-decagram</v-icon>
-                        System Version 1.0.0
+                        System Version 1.1.0
                     </v-chip>
                 </div>
             </v-col>
