@@ -1,0 +1,707 @@
+[
+  {
+    "timestamp": "09:40:59.905",
+    "message": "============================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:40:59.905",
+    "message": "NEW OCR REQUEST",
+    "data": null
+  },
+  {
+    "timestamp": "09:40:59.905",
+    "message": "Files: 1",
+    "data": null
+  },
+  {
+    "timestamp": "09:40:59.905",
+    "message": "============================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:40:59.905",
+    "message": "\n--- Processing file 1: 5200521752170152_10070_4.jpg ---",
+    "data": null
+  },
+  {
+    "timestamp": "09:40:59.906",
+    "message": "Running OCR on: temp_5200521752170152_10070_4.jpg",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:00.039",
+    "message": "Image size: (800, 800)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:00.039",
+    "message": "Testing angle: 0°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:01.795",
+    "message": "  Detected 28 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:01.797",
+    "message": "  ✓ New best: 28 blocks at 0°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:01.797",
+    "message": "Testing angle: 90°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:02.693",
+    "message": "  Detected 26 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:02.693",
+    "message": "Testing angle: 180°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:03.380",
+    "message": "  Detected 16 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:03.380",
+    "message": "Testing angle: 270°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.122",
+    "message": "  Detected 18 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.122",
+    "message": "==================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.122",
+    "message": "EXTRACTING KTP DATA",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.122",
+    "message": "==================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.122",
+    "message": "All OCR Lines (28 lines)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.122",
+    "message": "  [0] 'PEENHHUAATIHUF' at (373.0, 273.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [1] 'HMDPATEHFASHIHIAAE' at (373.0, 299.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [2] 'LIK' at (43.5, 328.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [3] 'CSTAOCHHOTR00OE' at (334.5, 336.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [4] '1' at (40.5, 373.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [5] 'HLM' at (256.5, 375.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [6] 'EF' at (106.0, 391.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [7] 'HNERHRMHA' at (259.0, 394.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [8] 'M' at (40.0, 409.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [9] 'P' at (70.5, 450.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [10] 'TH' at (190.0, 416.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [11] 'i' at (211.5, 417.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [12] 'S' at (233.5, 418.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [13] 'HRA' at (267.0, 419.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [14] '111' at (89.5, 421.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [15] '1I' at (193.5, 490.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [16] 'HY' at (202.0, 436.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [17] 't3' at (83.5, 441.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [18] '1' at (177.5, 446.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [19] 'HU' at (81.5, 474.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [20] '+' at (198.0, 455.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [21] 'MA' at (232.5, 503.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [22] '1' at (74.0, 563.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [23] 'TENUAEHTAM' at (293.0, 570.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [24] 'A' at (182.0, 588.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [25] 'PAELELAN' at (630.0, 596.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [26] 'pIs' at (75.5, 599.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "  [27] 'HT' at (230.5, 612.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "All text preview: PEENHHUAATIHUF\nHMDPATEHFASHIHIAAE\nLIK\nCSTAOCHHOTR00OE\n1\nHLM\nEF\nHNERHRMHA\nM\nP\nTH\nI\nS\nHRA\n111\n1I\nHY\nT3\n1\nHU\n+\nMA\n1\nTENUAEHTAM\nA\nPAELELAN\nPIS\nHT...",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:04.124",
+    "message": "KTP keyword matches: 0/6",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:29.847",
+    "message": "============================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:29.847",
+    "message": "NEW OCR REQUEST",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:29.847",
+    "message": "Files: 1",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:29.847",
+    "message": "============================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:29.847",
+    "message": "\n--- Processing file 1: 5200521752170152_10070_4.jpg ---",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:29.848",
+    "message": "Running OCR on: temp_5200521752170152_10070_4.jpg",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:29.896",
+    "message": "Image size: (800, 800)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:29.896",
+    "message": "Testing angle: 0°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:30.808",
+    "message": "  Detected 28 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:30.808",
+    "message": "  ✓ New best: 28 blocks at 0°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:30.808",
+    "message": "Testing angle: 90°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:31.634",
+    "message": "  Detected 26 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:31.636",
+    "message": "Testing angle: 180°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.222",
+    "message": "  Detected 16 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.224",
+    "message": "Testing angle: 270°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.907",
+    "message": "  Detected 18 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.907",
+    "message": "==================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "EXTRACTING KTP DATA",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "==================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "All OCR Lines (28 lines)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [0] 'PEENHHUAATIHUF' at (373.0, 273.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [1] 'HMDPATEHFASHIHIAAE' at (373.0, 299.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [2] 'LIK' at (43.5, 328.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [3] 'CSTAOCHHOTR00OE' at (334.5, 336.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [4] '1' at (40.5, 373.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [5] 'HLM' at (256.5, 375.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [6] 'EF' at (106.0, 391.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [7] 'HNERHRMHA' at (259.0, 394.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [8] 'M' at (40.0, 409.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [9] 'P' at (70.5, 450.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [10] 'TH' at (190.0, 416.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [11] 'i' at (211.5, 417.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [12] 'S' at (233.5, 418.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [13] 'HRA' at (267.0, 419.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [14] '111' at (89.5, 421.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [15] '1I' at (193.5, 490.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [16] 'HY' at (202.0, 436.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [17] 't3' at (83.5, 441.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [18] '1' at (177.5, 446.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [19] 'HU' at (81.5, 474.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.909",
+    "message": "  [20] '+' at (198.0, 455.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.911",
+    "message": "  [21] 'MA' at (232.5, 503.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.911",
+    "message": "  [22] '1' at (74.0, 563.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.911",
+    "message": "  [23] 'TENUAEHTAM' at (293.0, 570.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.911",
+    "message": "  [24] 'A' at (182.0, 588.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.911",
+    "message": "  [25] 'PAELELAN' at (630.0, 596.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.911",
+    "message": "  [26] 'pIs' at (75.5, 599.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.911",
+    "message": "  [27] 'HT' at (230.5, 612.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.911",
+    "message": "All text preview: PEENHHUAATIHUF\nHMDPATEHFASHIHIAAE\nLIK\nCSTAOCHHOTR00OE\n1\nHLM\nEF\nHNERHRMHA\nM\nP\nTH\nI\nS\nHRA\n111\n1I\nHY\nT3\n1\nHU\n+\nMA\n1\nTENUAEHTAM\nA\nPAELELAN\nPIS\nHT...",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:32.911",
+    "message": "KTP keyword matches: 0/6",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:48.708",
+    "message": "============================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:48.708",
+    "message": "NEW OCR REQUEST",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:48.708",
+    "message": "Files: 1",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:48.708",
+    "message": "============================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:48.708",
+    "message": "\n--- Processing file 1: 5200521752170152_10070_4.jpg ---",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:48.711",
+    "message": "Running OCR on: temp_5200521752170152_10070_4.jpg",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:48.764",
+    "message": "Image size: (800, 800)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:48.764",
+    "message": "Testing angle: 0°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:49.506",
+    "message": "  Detected 19 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:49.506",
+    "message": "  ✓ New best: 19 blocks at 0°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:49.508",
+    "message": "Testing angle: 90°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:50.209",
+    "message": "  Detected 14 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:50.209",
+    "message": "Testing angle: 180°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.017",
+    "message": "  Detected 15 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.017",
+    "message": "Testing angle: 270°",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.896",
+    "message": "  Detected 16 text blocks",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "==================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "EXTRACTING KTP DATA",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "==================================================",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "All OCR Lines (19 lines)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [0] 'HEARCAAE' at (553.5, 129.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [1] 'HHEPATEHTMSIHRAAR' at (552.0, 168.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [2] 'LIK' at (63.0, 208.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [3] 'HTTNOEHHOTHAOLDE' at (474.5, 222.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [4] 'EEHARA' at (337.0, 276.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [5] '11' at (156.5, 303.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [6] 'W' at (185.5, 303.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [7] 'FH' at (368.5, 308.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [8] '+' at (334.5, 339.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [9] 'A' at (595.0, 349.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [10] 'M' at (298.5, 370.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [11] 'DROENEAOER' at (294.5, 402.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [12] 'E' at (119.0, 429.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [13] 'PMHA' at (284.8, 434.2)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [14] '1' at (82.0, 457.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [15] 'H' at (270.5, 530.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [16] 'ME' at (430.5, 568.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [17] 'IT' at (145.0, 624.5)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "  [18] 'm' at (341.5, 631.0)",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "All text preview: HEARCAAE\nHHEPATEHTMSIHRAAR\nLIK\nHTTNOEHHOTHAOLDE\nEEHARA\n11\nW\nFH\n+\nA\nM\nDROENEAOER\nE\nPMHA\n1\nH\nME\nIT\nM...",
+    "data": null
+  },
+  {
+    "timestamp": "09:41:51.897",
+    "message": "KTP keyword matches: 0/6",
+    "data": null
+  }
+]

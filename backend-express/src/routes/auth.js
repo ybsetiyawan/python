@@ -99,7 +99,7 @@ router.post("/login", async (req, res) => {
         email: user.rows[0].email,
       },
       JWT_SECRET,
-      { expiresIn: "2h" }
+      { expiresIn: "5h" }
     );
 
     return res.json({

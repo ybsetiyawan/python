@@ -16,6 +16,20 @@ export default defineNuxtConfig({
     "vuetify/styles",
     "@mdi/font/css/materialdesignicons.css",
   ],
+   build: {
+    transpile: ['cropperjs']
+  },
+
+  app: {
+    head: {
+      link: [
+        {
+          rel: 'stylesheet',
+          href: 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css'
+        }
+      ]
+    }
+  },
 
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
@@ -27,3 +41,5 @@ export default defineNuxtConfig({
     },
   },
 })
+
+
