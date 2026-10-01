@@ -50,7 +50,7 @@
           class="text-uppercase font-weight-bold text-caption text-grey-darken-1"
           >Menu Utama</v-list-subheader
         >
-        <v-list-item
+        <!-- <v-list-item
           to="/admin/dashboard"
           prepend-icon="mdi-view-dashboard-outline"
           color="primary"
@@ -80,7 +80,7 @@
             rounded="lg"
             title="Draft"
             class="mb-1"
-          />
+          /> -->
 
         <v-list-item
           to="/admin/drafts"
@@ -88,6 +88,15 @@
           color="primary"
           rounded="lg"
           title="Verifikasi Draft"
+          class="mb-1"
+        />
+
+        <v-list-item
+          to="/admin/forms/"
+          prepend-icon="mdi-file-check"
+          color="primary"
+          rounded="lg"
+          title="Create Form"
           class="mb-1"
         />
 
@@ -108,7 +117,7 @@
       <v-app-bar-nav-icon @click="drawer = !drawer" class="d-md-none" />
 
       <v-app-bar-title class="font-weight-black text-grey-darken-3">
-        KTP <span class="text-primary">OCR</span>
+        EDPSBY <span class="text-primary">VISION</span>
       </v-app-bar-title>
 
       <v-spacer />
