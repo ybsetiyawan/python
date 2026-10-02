@@ -6,9 +6,9 @@
         <h1>Daftar Form</h1>
         <p>Kelola formulir, edit struktur field, dan lihat respons pengguna.</p>
       </div>
-     <NuxtLink to="/admin/forms/create" class="btn-primary">
-  + Buat Form Baru
-</NuxtLink>
+      <NuxtLink to="/admin/forms/create" class="btn-primary">
+        + Buat Form Baru
+      </NuxtLink>
     </div>
 
     <!-- State Loading -->
@@ -22,7 +22,6 @@
       <div class="paper-clip-icon">📎</div>
       <h3>Arsip Formulir Kosong</h3>
       <p>Belum ada template formulir yang dibuat dalam sistem.</p>
-      <NuxtLink to="/admin/forms/create" class="btn-primary">+ Buat Formulir Pertama</NuxtLink>
     </div>
 
     <!-- Grid Dokumen Paper Clip Warna-Warni -->
@@ -36,13 +35,10 @@
         <!-- PAPER CLIP BESAR BERWARNA (Atas Kanan) -->
         <div class="paper-clip-large" title="Dokumen Tersimpan">
           <svg viewBox="0 0 32 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Bayangan Clip -->
             <path d="M22 10V46C22 52.6274 16.6274 58 10 58C3.37258 58 -2 52.6274 -2 46V14C-2 9.58172 1.58172 6 6 6C10.4183 6 14 9.58172 14 14V42C14 44.2091 12.2091 46 10 46C7.79086 46 6 44.2091 6 42V18" 
-                stroke="rgba(0,0,0,0.18)" stroke-width="4.5" stroke-linecap="round" transform="translate(2, 3)" />
-            
-            <!-- Body Paper Clip Metallic/Colorful -->
+              stroke="rgba(0,0,0,0.18)" stroke-width="4.5" stroke-linecap="round" transform="translate(2, 3)" />
             <path d="M22 10V46C22 52.6274 16.6274 58 10 58C3.37258 58 -2 52.6274 -2 46V14C-2 9.58172 1.58172 6 6 6C10.4183 6 14 9.58172 14 14V42C14 44.2091 12.2091 46 10 46C7.79086 46 6 44.2091 6 42V18" 
-                class="clip-path-stroke" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+              class="clip-path-stroke" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
 
@@ -109,14 +105,14 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useNuxtApp } from '#imports'
-import { useAuth } from '~~/app/composables/useAuth'
 
+// Definisikan layout dan middleware di sini (di luar onMounted)
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  middleware: ['auth-menu'] // <<-- Otomatis diproteksi secara dinamis di sini
 })
 
 const router = useRouter()
-const { getToken } = useAuth()
 
 const forms = ref([])
 const pending = ref(true)
@@ -139,12 +135,8 @@ const fetchForms = async () => {
   }
 }
 
+// onMounted sekarang bersih, hanya fokus mengambil data form saja
 onMounted(async () => {
-  const token = getToken()
-  if (!token) {
-    router.push('/login')
-    return
-  }
   await fetchForms()
 })
 
@@ -189,6 +181,7 @@ const formatDate = (dateStr) => {
 </script>
 
 <style scoped>
+/* (Bagian style CSS tetap sama seperti sebelumnya) */
 .admin-dashboard {
   max-width: 1080px;
   margin: 0 auto;
@@ -235,14 +228,12 @@ const formatDate = (dateStr) => {
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
 }
 
-/* Grid Layout Paper */
 .forms-paper-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 32px;
 }
 
-/* Kartu Dokumen Kertas */
 .paper-card {
   position: relative;
   background: #ffffff;
@@ -262,7 +253,6 @@ const formatDate = (dateStr) => {
   box-shadow: 0 20px 32px -8px rgba(0, 0, 0, 0.12), 0 8px 12px -4px rgba(0, 0, 0, 0.04);
 }
 
-/* PAPER CLIP BESAR */
 .paper-clip-large {
   position: absolute;
   top: -17px;
@@ -284,7 +274,6 @@ const formatDate = (dateStr) => {
   height: 100%;
 }
 
-/* Aksesori Pita Warna Atas Card */
 .top-color-bar {
   position: absolute;
   top: 0;
@@ -294,7 +283,6 @@ const formatDate = (dateStr) => {
   border-radius: 14px 14px 0 0;
 }
 
-/* Aksen Lipatan Kertas di Kiri Bawah */
 .corner-fold {
   position: absolute;
   bottom: 0;
@@ -308,7 +296,6 @@ const formatDate = (dateStr) => {
   box-shadow: 1px -1px 2px rgba(0,0,0,0.06);
 }
 
-/* Variant Tema Warna Kartu */
 .theme-indigo .top-color-bar { background: linear-gradient(90deg, #6366f1, #4f46e5); }
 .theme-indigo .clip-path-stroke { stroke: #4f46e5; }
 .theme-indigo .field-badge { background: #e0e7ff; color: #3730a3; }
@@ -334,7 +321,6 @@ const formatDate = (dateStr) => {
 .theme-cyan .field-badge { background: #cffafe; color: #155e75; }
 .theme-cyan:hover { border-color: #67e8f9; }
 
-/* Top Meta */
 .paper-top-meta {
   display: flex;
   justify-content: space-between;
@@ -359,7 +345,6 @@ const formatDate = (dateStr) => {
   font-weight: 500;
 }
 
-/* Isi Dokumen */
 .paper-content {
   margin-bottom: 24px;
 }
@@ -387,7 +372,6 @@ const formatDate = (dateStr) => {
   overflow: hidden;
 }
 
-/* Tombol Aksi Berwarna Vibrant */
 .paper-actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -414,7 +398,6 @@ const formatDate = (dateStr) => {
   transform: translateY(-3px);
 }
 
-/* 1. Tombol Salin (Indigo Vibrant) */
 .btn-salin {
   background-color: #e0e7ff;
   color: #4338ca;
@@ -427,7 +410,6 @@ const formatDate = (dateStr) => {
   box-shadow: 0 4px 12px rgba(67, 56, 202, 0.35);
 }
 
-/* 2. Tombol Edit (Amber Warm Vibrant) */
 .btn-edit {
   background-color: #fef3c7;
   color: #b45309;
@@ -440,7 +422,6 @@ const formatDate = (dateStr) => {
   box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
 }
 
-/* 3. Tombol Respons (Emerald Fresh Vibrant) */
 .btn-respons {
   background-color: #d1fae5;
   color: #047857;
@@ -453,7 +434,6 @@ const formatDate = (dateStr) => {
   box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
 }
 
-/* Loading & Empty State */
 .loading-state, .empty-paper {
   text-align: center;
   padding: 60px 20px;
@@ -481,7 +461,6 @@ const formatDate = (dateStr) => {
   margin-bottom: 8px;
 }
 
-/* Toast Floating */
 .toast-floating {
   position: fixed;
   bottom: 30px;

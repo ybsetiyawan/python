@@ -8,6 +8,9 @@ const app = express();
 const formRoutes = require('./routes/formRoutes');
 const ocrRoute = require("./routes/ocr");
 const authRoute = require("./routes/auth");
+const userRoutes = require('./routes/userRoutes');
+const menuRoutes = require('./routes/menuRoutes');
+
 
 app.set("trust proxy", true);
 
@@ -32,6 +35,8 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 app.use("/api/ocr", ocrRoute);
 app.use("/api/auth", authRoute);
 app.use("/api/forms", formRoutes);
+app.use('/api/users', userRoutes);
+app.use("/api/menus", menuRoutes);
 
 app.get("/", (req, res) => {
   res.send("Express Server Running 🚀");

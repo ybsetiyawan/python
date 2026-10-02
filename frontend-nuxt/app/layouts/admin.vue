@@ -1,145 +1,113 @@
 <template>
-  <v-app class="bg-grey-lighten-4">
+  <v-app class="workspace-layout">
+    <!-- NAVIGATION DRAWER: LIGHT & CLEAN -->
     <v-navigation-drawer
       v-model="drawer"
       elevation="0"
-      class="border-e-sm"
+      class="sidebar-clean border-e-sm"
       :width="280"
     >
-      <div class="pa-6 d-flex align-center">
-        <v-badge
-          dot
-          location="bottom end"
-          color="success"
-          offset-x="3"
-          offset-y="3"
-        >
-          <v-avatar color="primary" size="38" class="elevation-2">
-            <v-icon color="white" size="20">mdi-account</v-icon>
-          </v-avatar>
-        </v-badge>
-
-        <div class="ml-4 d-flex flex-column" style="min-width: 0">
-          <span
-            class="text-grey-darken-1 font-weight-medium"
-            style="font-size: 0.7rem; line-height: 1"
+      <!-- KARTU PROFIL USER DI SIDEBAR -->
+      <div class="px-4 py-4">
+        <div class="user-profile-box pa-3 d-flex align-center">
+          <v-badge
+            dot
+            location="bottom end"
+            color="success"
+            offset-x="2"
+            offset-y="2"
           >
-            Welcome,
-          </span>
+            <v-avatar color="indigo-darken-2" size="38" class="elevation-1">
+              <span class="text-white font-weight-bold text-subtitle-2">{{ userInitials }}</span>
+            </v-avatar>
+          </v-badge>
 
-          <div
-            class="text-slate-800 font-weight-black text-truncate mt-1"
-            style="font-size: 0.75rem; line-height: 1.2"
-          >
-            <span class="text-uppercase">{{ userName }}</span>
+          <div class="ml-3 d-flex flex-column" style="min-width: 0">
+            <span class="text-slate-400 font-weight-medium" style="font-size: 10px; line-height: 1">
+              Logged in as,
+            </span>
+            <div class="text-slate-900 font-weight-bold text-truncate mt-1" style="font-size: 12px; line-height: 1.2">
+              <span class="text-uppercase">{{ userName }}</span>
+            </div>
           </div>
-
-          <span
-            class="text-grey-lighten-1"
-            style="font-size: 0.7rem; margin-top: 2px"
-          >
-            Powered by EDP SBY @2026
-          </span>
         </div>
       </div>
 
-      <v-divider class="mx-4 mb-4"></v-divider>
+      <v-divider class="mx-4 mb-2 border-slate-200"></v-divider>
 
-      <v-list nav density="comfortable" class="px-4">
-        <v-list-subheader
-          class="text-uppercase font-weight-bold text-caption text-grey-darken-1"
-          >Menu Utama</v-list-subheader
-        >
-        <!-- <v-list-item
-          to="/admin/dashboard"
-          prepend-icon="mdi-view-dashboard-outline"
-          color="primary"
-          rounded="lg"
-          title="Dashboard"
-          class="mb-1"
-        />
+      <!-- NAVIGATION MENU -->
+      <v-list nav density="comfortable" class="px-3 custom-menu-list">
+        <v-list-subheader class="text-uppercase font-weight-bold text-caption text-slate-400 px-3 mb-1" style="font-size: 10px; letter-spacing: 0.8px;">
+          Menu Navigasi
+        </v-list-subheader>
 
-        <v-list-item
-          to="/admin/upload"
-          prepend-icon="mdi-cloud-upload-outline"
-          color="primary"
-          rounded="lg"
-          title="Upload Dokumen"
-          class="mb-1"
-        />
+        <!-- Loading State -->
+        <div v-if="menuLoading" class="px-4 py-6 text-center text-slate-400 text-caption">
+          Memuat menu...
+        </div>
 
-        <v-list-item
-          prepend-icon="mdi-check-circle"
-          title="Verified"
-          to="/admin/verified"
-          />
-          <v-list-item
-            to="/admin/draftsall"
-            prepend-icon="mdi-file-alert"
-            color="primary"
-            rounded="lg"
-            title="Draft"
-            class="mb-1"
-          /> -->
-
-        <v-list-item
-          to="/admin/drafts"
-          prepend-icon="mdi-file-check-outline"
-          color="primary"
-          rounded="lg"
-          title="Verifikasi Draft"
-          class="mb-1"
-        />
-
-        <v-list-item
-          to="/admin/forms/"
-          prepend-icon="mdi-file-check"
-          color="primary"
-          rounded="lg"
-          title="Create Form"
-          class="mb-1"
-        />
-
-
-        <v-list-item
-          @click="showExportDialog = true"
-          prepend-icon="mdi-file-export-outline"
-          color="primary"
-          rounded="lg"
-          title="Ekspor Data"
-          class="mb-1"
-          link
-        />
+        <!-- Render Menu Dinamis dari Tabel menus -->
+        <template v-else>
+          <template v-for="menu in menus" :key="menu.id || menu.path">
+            <v-list-item
+              :to="menu.path !== '/admin/export' && !menu.name.toLowerCase().includes('ekspor') ? menu.path : undefined"
+              @click="menu.path === '/admin/export' || menu.name.toLowerCase().includes('ekspor') ? showExportDialog = true : null"
+              color="indigo-darken-2"
+              rounded="xl"
+              class="mb-1.5 menu-item-custom"
+            >
+              <template v-slot:prepend>
+                <v-icon :icon="formatIcon(menu.icon)" size="20" class="mr-3 text-indigo-darken-2" />
+              </template>
+              
+              <v-list-item-title class="font-weight-medium" style="font-size: 13.5px;">
+                {{ menu.name }}
+              </v-list-item-title>
+            </v-list-item>
+          </template>
+        </template>
       </v-list>
+
+      <!-- DRAWER FOOTER / COPYRIGHT -->
+      <template v-slot:append>
+        <div class="pa-4 text-center border-t-sm border-slate-100">
+          <p class="text-slate-400 font-weight-medium m-0" style="font-size: 11px;">
+            Copyright &copy; @Ybs - EDPSBY 2026
+          </p>
+        </div>
+      </template>
     </v-navigation-drawer>
 
-    <v-app-bar elevation="0" class="border-b-sm bg-white px-4" flat>
-      <v-app-bar-nav-icon @click="drawer = !drawer" class="d-md-none" />
+    <!-- APP BAR -->
+    <v-app-bar elevation="0" class="border-b-sm bg-white px-4 appbar-clean" height="70">
+      <v-app-bar-nav-icon @click="drawer = !drawer" class="d-md-none text-slate-700" />
 
-      <v-app-bar-title class="font-weight-black text-grey-darken-3">
-        EDPSBY <span class="text-primary">VISION</span>
+      <!-- Judul Appbar otomatis mengikuti menu aktif atau default -->
+      <v-app-bar-title class="font-weight-bold text-slate-800 ml-2 text-subtitle-1">
+        {{ currentMenuTitle }}
       </v-app-bar-title>
 
       <v-spacer />
 
+      <!-- USER INFO RIGHT -->
       <div class="d-flex align-center">
-        <v-avatar size="36" color="primary" class="mr-3">
-          <span class="text-white font-weight-bold">{{ userInitials }}</span>
+        <v-avatar size="38" color="indigo-lighten-5" class="mr-3 border-indigo-subtle">
+          <span class="text-indigo-darken-2 font-weight-bold text-subtitle-2">{{ userInitials }}</span>
         </v-avatar>
-        <div class="overflow-hidden">
-          <div
-            class="text-subtitle-2 font-weight-black text-truncate text-grey-darken-4"
-          >
+        
+        <div class="overflow-hidden d-none d-sm-block">
+          <div class="text-subtitle-2 font-weight-bold text-truncate text-slate-900" style="font-size: 13px !important;">
             {{ userName }}
           </div>
           <v-tooltip text="Keluar dari sistem" location="bottom">
             <template #activator="{ props }">
               <div
                 v-bind="props"
-                class="text-caption text-primary font-weight-bold cursor-pointer d-flex align-center"
+                class="text-caption text-rose-600 font-weight-semibold cursor-pointer d-flex align-center logout-trigger"
                 @click="logout"
+                style="font-size: 11px !important;"
               >
-                <v-icon size="12" class="mr-1">mdi-logout</v-icon>
+                <v-icon size="12" class="mr-1">mdi:logout</v-icon>
                 Keluar
               </div>
             </template>
@@ -148,21 +116,23 @@
       </div>
     </v-app-bar>
 
-    <v-main>
-      <v-container fluid class="pa-0">
+    <!-- MAIN CONTENT CONTAINER -->
+    <v-main class="main-background">
+      <v-container fluid class="pa-6">
         <v-fade-transition mode="out-in">
-          <div class="pa-4 pa-md-8">
-            <slot />
-          </div>
+          <!-- NuxtPage merender halaman sesuai path URL secara dinamis -->
+          <NuxtPage />
         </v-fade-transition>
       </v-container>
     </v-main>
 
+    <!-- SNACKBAR NOTIFICATION -->
     <v-snackbar
       v-model="snackbar.show"
       :color="snackbar.color"
       location="top right"
       timeout="3000"
+      rounded="pill"
     >
       {{ snackbar.text }}
       <template v-slot:actions>
@@ -170,29 +140,32 @@
       </template>
     </v-snackbar>
 
+    <!-- EXPORT PASSWORD DIALOG -->
     <v-dialog v-model="showExportDialog" max-width="400">
-      <v-card>
-        <v-card-title class="font-weight-bold">
+      <v-card class="rounded-2xl pa-4 elevation-6">
+        <v-card-title class="font-weight-bold text-slate-900 text-h6 px-4 pt-4">
           Password Ekspor Data
         </v-card-title>
 
-        <v-card-text>
+        <v-card-text class="px-4 pt-2 pb-0">
           <v-text-field
             v-model="exportPassword"
             label="Masukkan Password"
             type="password"
             variant="outlined"
             density="comfortable"
+            color="indigo-darken-2"
+            class="rounded-xl"
             autofocus
           />
         </v-card-text>
 
-        <v-card-actions>
+        <v-card-actions class="px-4 pb-4">
           <v-spacer />
-          <v-btn variant="text" @click="showExportDialog = false">
+          <v-btn variant="text" class="text-slate-600 text-none" @click="showExportDialog = false">
             Batal
           </v-btn>
-          <v-btn color="primary" :loading="exportLoading" @click="exportExcel">
+          <v-btn color="indigo-darken-2" class="text-none rounded-xl px-5" :loading="exportLoading" @click="exportExcel">
             Download
           </v-btn>
         </v-card-actions>
@@ -203,40 +176,68 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { useRouter, useNuxtApp } from "#imports";
+import { useRouter, useRoute, useNuxtApp } from "#imports";
 import { useAuth } from "~~/app/composables/useAuth";
+
 const showExportDialog = ref(false);
 const exportPassword = ref("");
 const exportLoading = ref(false);
 
 const router = useRouter();
+const route = useRoute();
 const { logout: authLogout } = useAuth();
 const drawer = ref(true);
 const userName = ref("Guest");
 
-// State untuk notifikasi notify
+const menus = ref<any[]>([]);
+const menuLoading = ref(true);
+
 const snackbar = ref({
   show: false,
   text: "",
   color: "success",
 });
 
-// Fungsi helper notify
 function notify(message: string, color: string = "success") {
   snackbar.value.text = message;
   snackbar.value.color = color;
   snackbar.value.show = true;
 }
 
-onMounted(() => {
+function formatIcon(iconStr: string) {
+  if (!iconStr) return 'mdi-view-dashboard';
+  return iconStr.replace(':', '-');
+}
+
+// Menyesuaikan judul Appbar secara otomatis berdasarkan path menu yang sedang dibuka
+const currentMenuTitle = computed(() => {
+  const activeMenu = menus.value.find(m => m.path === route.path);
+  return activeMenu ? activeMenu.name : "Dashboard Panel";
+});
+
+onMounted(async () => {
   const userData = localStorage.getItem("user_data");
   if (userData) {
     try {
       const user = JSON.parse(userData);
       userName.value = user.name || "User";
     } catch (e) {
-      console.error("Gagal parsing user data");
+      console.error("Gagal parsing user data dari localStorage");
     }
+  }
+
+  try {
+    const { $api } = useNuxtApp();
+    const res: any = await $api("/auth/menus", { method: "GET" });
+    const menuList = res?.data || res;
+
+    if (Array.isArray(menuList)) {
+      menus.value = menuList;
+    }
+  } catch (err: any) {
+    notify(err?.data?.message || "Gagal memuat hak akses menu", "error");
+  } finally {
+    menuLoading.value = false;
   }
 });
 
@@ -254,39 +255,8 @@ const userInitials = computed(() => {
 });
 
 function logout() {
-  authLogout(); // Memanggil logout dari useAuth agar redirect konsisten
+  authLogout();
 }
-
-// async function exportExcel() {
-//   try {
-//     const { $api } = useNuxtApp()
-
-//     // Menggunakan $api agar interceptor auth/expired di api.ts berjalan
-//     const blob: Blob = await $api("/api/ocr/export", {
-//       method: "GET",
-//       responseType: "blob"
-//     })
-
-//     const url = window.URL.createObjectURL(blob)
-//     const a = document.createElement("a")
-//     a.href = url
-//     a.download = `ktp_export_${new Date().getTime()}.xlsx`
-//     document.body.appendChild(a)
-//     a.click()
-
-//     window.URL.revokeObjectURL(url)
-//     document.body.removeChild(a)
-
-//     notify("Data berhasil diekspor ke Excel", "success")
-
-//   } catch (err: any) {
-//     // Abaikan jika error 401 karena sudah ditangani api.ts (redirect logout)
-//     if (err.status !== 401) {
-//       console.error("Gagal export excel:", err)
-//       notify(err.data?.message || "Gagal mengunduh file Excel", "error")
-//     }
-//   }
-// }
 
 async function exportExcel() {
   if (!exportPassword.value) {
@@ -298,13 +268,9 @@ async function exportExcel() {
 
   try {
     const { $api } = useNuxtApp();
-
     const blob: Blob = await $api(
       `/ocr/export?password=${encodeURIComponent(exportPassword.value)}`,
-      {
-        method: "GET",
-        responseType: "blob",
-      },
+      { method: "GET", responseType: "blob" },
     );
 
     const url = window.URL.createObjectURL(blob);
@@ -313,12 +279,10 @@ async function exportExcel() {
     a.download = `ktp_export_${new Date().getTime()}.xlsx`;
     document.body.appendChild(a);
     a.click();
-
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
 
     notify("Data berhasil diekspor", "success");
-
     showExportDialog.value = false;
     exportPassword.value = "";
   } catch (err: any) {
@@ -334,18 +298,52 @@ async function exportExcel() {
 </script>
 
 <style scoped>
-.leading-tight {
-  line-height: 1.2;
+.workspace-layout {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #f8fafc;
 }
-/* Scrollbar halus untuk sidebar */
+.sidebar-clean {
+  background-color: #ffffff !important;
+  border-right: 1px solid #e2e8f0;
+}
+.user-profile-box {
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+}
+.appbar-clean {
+  border-bottom: 1px solid #e2e8f0;
+}
+.main-background {
+  background-color: #f8fafc;
+}
+.menu-item-custom {
+  font-weight: 500;
+  color: #334155;
+  transition: all 0.2s ease;
+}
+.menu-item-custom:hover {
+  background-color: #f1f5f9;
+}
+:deep(.v-list-item--active) {
+  background-color: #eef2ff !important;
+  color: #4f46e5 !important;
+}
+.border-indigo-subtle {
+  border: 1px solid rgba(79, 70, 229, 0.2);
+}
+.logout-trigger {
+  color: #e11d48 !important;
+  transition: opacity 0.2s;
+}
+.logout-trigger:hover {
+  opacity: 0.8;
+}
 :deep(.v-navigation-drawer__content::-webkit-scrollbar) {
   width: 4px;
 }
 :deep(.v-navigation-drawer__content::-webkit-scrollbar-thumb) {
-  background: #e0e0e0;
+  background: #cbd5e1;
   border-radius: 10px;
-}
-.v-main {
-  background-color: #f8fafc;
 }
 </style>

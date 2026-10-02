@@ -36,7 +36,7 @@
         <div class="builder-card main-card">
           <div class="card-accent-bar"></div>
           <div class="builder-header">
-            <h1>Edit Formulir Dinamis</h1>
+            <h1>Edit Formulir</h1>
             <p>Ubah judul, deskripsi, atau sesuaikan struktur pertanyaan.</p>
           </div>
 

@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const pool = require("../config/db");
+const authMiddleware = require("../middleware/authMiddleware"); // Pastikan path ini sesuai dengan letak middleware Anda
 
 const JWT_SECRET = process.env.JWT_SECRET || "SUPER_SECRET_KEY";
 
@@ -37,7 +38,6 @@ router.post("/register", async (req, res) => {
       );
 
       if (existing.rows.length > 0) {
-        // Jika batch, kita bisa skip atau beri error. Di sini kita beri error agar data bersih.
         return res.status(400).json({ error: `Email ${email} sudah terdaftar` });
       }
 
@@ -114,6 +114,79 @@ router.post("/login", async (req, res) => {
 
   } catch (err) {
     return res.status(500).json({ error: err.message });
+  }
+});
+
+/*
+=================================
+GET MENUS BY LOGGED-IN USER
+=================================
+*/
+router.get("/menus", authMiddleware, async (req, res) => {
+  try {
+    // Ambil user id dari token yang sudah didecode oleh authMiddleware
+    const userId = req.user?.id || req.user?.userId || null;
+
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Unauthorized: User ID tidak ditemukan dalam token" 
+      });
+    }
+
+    // Query untuk mengambil menu sesuai user_menus
+    const query = `
+      SELECT m.* 
+      FROM menus m
+      JOIN user_menus um ON m.id = um.menu_id
+      WHERE um.user_id = $1
+      ORDER BY m.sort_order ASC
+    `;
+
+    const result = await pool.query(query, [userId]);
+
+    return res.json({
+      success: true,
+      data: result.rows
+    });
+
+  } catch (err) {
+    console.error("Error mengambil menu user:", err);
+    return res.status(500).json({ 
+      success: false, 
+      error: err.message || "Internal Server Error" 
+    });
+  }
+});
+
+/*
+=================================
+GET ALL MENUS (For Dashboard Workspace / Admin)
+=================================
+*/
+router.get("/menus/all", authMiddleware, async (req, res) => {
+  try {
+    // Query untuk mengambil seluruh daftar menu yang tersedia di sistem
+    const query = `
+      SELECT * 
+      FROM menus 
+      WHERE is_publish = 'Y'
+      ORDER BY sort_order ASC
+    `;
+
+    const result = await pool.query(query);
+
+    return res.json({
+      success: true,
+      data: result.rows
+    });
+
+  } catch (err) {
+    console.error("Error mengambil seluruh menu:", err);
+    return res.status(500).json({ 
+      success: false, 
+      error: err.message || "Internal Server Error" 
+    });
   }
 });
 
