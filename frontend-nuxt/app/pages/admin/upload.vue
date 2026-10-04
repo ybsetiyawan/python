@@ -244,9 +244,6 @@
           class="ml-2"
         />
       </v-btn>
-
-      <!-- Upload Ulang Button untuk file gagal -->
-    
     </v-card>
 
     <!-- Dialog Crop dengan Cropper.js -->
@@ -287,7 +284,7 @@
             </div>
           </div>
           
-          <!-- Controls - Hanya Crop, tanpa Rotate -->
+          <!-- Controls -->
           <div class="d-flex align-center ga-4 mt-4 flex-wrap controls-wrapper">
             <v-btn-group variant="outlined" density="comfortable">
               <v-btn 
@@ -371,22 +368,22 @@
 </template>
 
 <script setup lang="ts">
+// Proteksi akses menu secara dinamis menggunakan middleware
 definePageMeta({
-  layout: "admin"
+  layout: "admin",
+  middleware: ["auth-menu"]
 })
 
 import { ref, onBeforeUnmount, onMounted, nextTick, watch, computed } from "vue"
 import { useRouter } from "#imports";
 import { useAuth } from "~~/app/composables/useAuth";
 
-// Dynamic import untuk Cropper.js
 let Cropper: any = null
 
 const router = useRouter();
 const { getToken } = useAuth();
 const { $api } = useNuxtApp()
 
-// ==================== STATE ====================
 const files = ref<File[]>([])
 const previews = ref<string[]>([])
 const loading = ref(false)
@@ -394,14 +391,12 @@ const errorList = ref<string[]>([])
 const successList = ref<string[]>([])
 const showGoDraftButton = ref(false)
 const imageStatus = ref<string[]>([])
-const uploadStatus = ref<string[]>([]) // 'idle' | 'processing' | 'success' | 'failed'
+const uploadStatus = ref<string[]>([])
 
-// Computed untuk file yang gagal
-const failedFiles = computed(() => {
-  return files.value.filter((_, index) => uploadStatus.value[index] === 'failed')
-})
+// const failedFiles = computed(() => {
+//   return files.value.filter((_, index) => uploadStatus.value[index] === 'failed')
+// })
 
-// State untuk crop
 const cropDialog = ref(false)
 const cropIndex = ref(-1)
 const cropImageUrl = ref<string>('')
@@ -411,7 +406,6 @@ let cropperInstance: any = null
 const zoomLevel = ref(0)
 const cropData = ref<{ width: number; height: number } | null>(null)
 
-// ==================== LIFECYCLE ====================
 onMounted(async () => {
   const token = getToken();
   if (!token) {
@@ -424,7 +418,6 @@ onMounted(async () => {
       // @ts-ignore
       const module = await import('cropperjs')
       Cropper = module.default
-      console.log('✅ Cropper.js loaded successfully')
     } catch (err) {
       console.error('❌ Failed to load Cropper.js:', err)
     }
@@ -436,7 +429,6 @@ onBeforeUnmount(() => {
   destroyCropper()
 })
 
-// ==================== FUNGSI UTILITY ====================
 function getFileName(index: number): string {
   const file = files.value[index]
   if (!file) return 'unknown'
@@ -509,25 +501,17 @@ function removeImage(index: number) {
   uploadStatus.value.splice(index, 1)
 }
 
-// ==================== ROTASI GAMBAR ====================
 async function rotateImage(index: number) {
-  if (index < 0 || index >= files.value.length) {
-    console.error('Index out of bounds')
-    return
-  }
+  if (index < 0 || index >= files.value.length) return
   
   try {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
-    if (!ctx) {
-      throw new Error('Failed to get canvas context')
-    }
+    if (!ctx) return
     
     const img = new Image()
     const file = files.value[index]
-    if (!file) {
-      throw new Error('File not found')
-    }
+    if (!file) return
     
     const url = URL.createObjectURL(file)
     
@@ -545,23 +529,18 @@ async function rotateImage(index: number) {
     
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((b: Blob | null) => {
-        if (b) {
-          resolve(b)
-        } else {
-          reject(new Error('Failed to convert to blob'))
-        }
+        if (b) resolve(b)
+        else reject(new Error('Failed to convert to blob'))
       }, 'image/jpeg', 0.95)
     })
     
     const rotatedFile = new File([blob], file.name, { type: 'image/jpeg' })
-    
     files.value[index] = rotatedFile
+    
     if (previews.value[index]) {
       try {
         URL.revokeObjectURL(previews.value[index])
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
     previews.value[index] = URL.createObjectURL(rotatedFile)
     
@@ -570,21 +549,15 @@ async function rotateImage(index: number) {
     
     try {
       URL.revokeObjectURL(url)
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   } catch (err) {
     console.error('Rotasi gagal:', err)
     errorList.value.push('Gagal merotasi gambar')
   }
 }
 
-// ==================== CROP DENGAN CROPPER.JS ====================
 function openCropDialog(index: number) {
-  if (index < 0 || index >= previews.value.length) {
-    console.error('Index out of bounds')
-    return
-  }
+  if (index < 0 || index >= previews.value.length) return
   
   cropIndex.value = index
   cropImageUrl.value = previews.value[index] || ''
@@ -607,17 +580,7 @@ function closeCropDialog() {
 
 function initCropper() {
   destroyCropper()
-  
-  if (!Cropper) {
-    console.error('Cropper not loaded')
-    return
-  }
-  
-  const imageElement = cropperImageRef.value
-  if (!imageElement) {
-    console.error('Cropper image reference not found')
-    return
-  }
+  if (!Cropper || !cropperImageRef.value) return
   
   try {
     const options: any = {
@@ -628,24 +591,6 @@ function initCropper() {
       rotatable: false,
       scalable: true,
       zoomable: true,
-      zoomOnTouch: true,
-      zoomOnWheel: true,
-      wheelZoomRatio: 0.1,
-      guides: true,
-      center: true,
-      highlight: true,
-      background: true,
-      modal: true,
-      responsive: true,
-      restore: true,
-      checkCrossOrigin: true,
-      checkOrientation: true,
-      cropBoxMovable: true,
-      cropBoxResizable: true,
-      toggleDragModeOnDblclick: true,
-      minCropBoxWidth: 50,
-      minCropBoxHeight: 50,
-      
       crop: (event: any) => {
         if (event.detail) {
           cropData.value = {
@@ -655,15 +600,7 @@ function initCropper() {
         }
       }
     }
-
-    cropperInstance = new (Cropper as any)(imageElement, options)
-    
-    setTimeout(() => {
-      if (cropperInstance) {
-        cropperInstance.setDragMode('crop')
-      }
-    }, 100)
-    
+    cropperInstance = new (Cropper as any)(cropperImageRef.value, options)
   } catch (err) {
     console.error('Error initializing cropper:', err)
   }
@@ -673,67 +610,36 @@ function destroyCropper() {
   if (cropperInstance) {
     try {
       cropperInstance.destroy()
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
     cropperInstance = null
   }
 }
 
 function resetCropper() {
   if (cropperInstance) {
-    try {
-      cropperInstance.reset()
-      zoomLevel.value = 0
-      cropData.value = null
-      setTimeout(() => {
-        if (cropperInstance) {
-          cropperInstance.setDragMode('crop')
-        }
-      }, 100)
-    } catch (e) {
-      console.error('Reset cropper error:', e)
-    }
+    cropperInstance.reset()
+    zoomLevel.value = 0
+    cropData.value = null
   }
 }
 
 function onZoomChange(value: number) {
   if (cropperInstance) {
-    try {
-      const zoomRatio = value * 0.5 + 1
-      cropperInstance.zoomTo(zoomRatio)
-    } catch (e) {
-      console.error('Zoom error:', e)
-    }
+    const zoomRatio = value * 0.5 + 1
+    cropperInstance.zoomTo(zoomRatio)
   }
 }
 
 function setKTPRatio() {
-  if (cropperInstance) {
-    try {
-      cropperInstance.setAspectRatio(1.586)
-    } catch (e) {
-      console.error('Set ratio error:', e)
-    }
-  }
+  if (cropperInstance) cropperInstance.setAspectRatio(1.586)
 }
 
 function setFreeRatio() {
-  if (cropperInstance) {
-    try {
-      cropperInstance.setAspectRatio(NaN)
-    } catch (e) {
-      console.error('Set free ratio error:', e)
-    }
-  }
+  if (cropperInstance) cropperInstance.setAspectRatio(NaN)
 }
 
 async function applyCrop() {
-  if (!cropperInstance || cropIndex.value === -1) {
-    console.error('Cropper not initialized or invalid index')
-    return
-  }
-  
+  if (!cropperInstance || cropIndex.value === -1) return
   cropLoading.value = true
   
   try {
@@ -745,41 +651,30 @@ async function applyCrop() {
       imageSmoothingQuality: 'high',
     })
     
-    if (!croppedCanvas) {
-      throw new Error('Gagal mendapatkan hasil crop')
-    }
+    if (!croppedCanvas) throw new Error('Gagal mendapatkan hasil crop')
     
     const blob = await new Promise<Blob>((resolve, reject) => {
       croppedCanvas.toBlob((b: Blob | null) => {
-        if (b) {
-          resolve(b)
-        } else {
-          reject(new Error('Gagal konversi ke blob'))
-        }
+        if (b) resolve(b)
+        else reject(new Error('Gagal konversi ke blob'))
       }, 'image/jpeg', 0.95)
     })
     
     const file = files.value[cropIndex.value]
-    if (!file) {
-      throw new Error('File not found')
-    }
+    if (!file) throw new Error('File not found')
     
     const croppedFile = new File([blob], file.name, { type: 'image/jpeg' })
-    
     files.value[cropIndex.value] = croppedFile
     
-    const previewUrl = previews.value[cropIndex.value]
+  const previewUrl = previews.value[cropIndex.value]
     if (previewUrl) {
       try {
         URL.revokeObjectURL(previewUrl)
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
-    
+
     previews.value[cropIndex.value] = URL.createObjectURL(croppedFile)
     imageStatus.value[cropIndex.value] = 'Cropped'
-    
     closeCropDialog()
   } catch (err) {
     console.error('Crop gagal:', err)
@@ -789,14 +684,10 @@ async function applyCrop() {
   }
 }
 
-// Watch crop dialog untuk destroy cropper
 watch(cropDialog, (newVal: boolean) => {
-  if (!newVal) {
-    destroyCropper()
-  }
+  if (!newVal) destroyCropper()
 })
 
-// ==================== UPLOAD ====================
 async function upload() {
   if (!files.value.length) return
 
@@ -805,7 +696,6 @@ async function upload() {
   successList.value = []
   showGoDraftButton.value = false
 
-  // Set status processing untuk semua file
   for (let i = 0; i < files.value.length; i++) {
     uploadStatus.value[i] = 'processing'
   }
@@ -813,9 +703,7 @@ async function upload() {
   const formData = new FormData()
   for (let i = 0; i < files.value.length; i++) {
     const file = files.value[i]
-    if (file) {
-      formData.append("files", file)
-    }
+    if (file) formData.append("files", file)
   }
 
   try {
@@ -824,7 +712,6 @@ async function upload() {
       body: formData
     })
 
-    // Update status berdasarkan hasil
     for (let i = 0; i < res.results.length; i++) {
       const item = res.results[i]
       if (item.error) {
@@ -836,13 +723,10 @@ async function upload() {
       }
     }
 
-    // Cek apakah ada yang berhasil
-    const hasSuccess = uploadStatus.value.some(status => status === 'success')
-    if (hasSuccess) {
+    if (uploadStatus.value.some(status => status === 'success')) {
       showGoDraftButton.value = true
     }
 
-    // Hapus file yang BERHASIL saja setelah 3 detik
     setTimeout(() => {
       const newFiles: File[] = []
       const newPreviews: string[] = []
@@ -855,19 +739,11 @@ async function upload() {
         const status = imageStatus.value[i]
         const uploadStat = uploadStatus.value[i]
         
-        // HANYA file yang BERHASIL yang dihapus
-        // File yang GAGAL tetap dipertahankan
         if (uploadStat === 'success') {
-          // Hapus URL untuk file yang berhasil
           if (preview) {
-            try {
-              URL.revokeObjectURL(preview)
-            } catch (e) {
-              // ignore
-            }
+            try { URL.revokeObjectURL(preview) } catch (e) {}
           }
         } else {
-          // Pertahankan file yang gagal dan idle
           if (file && preview && status && uploadStat) {
             newFiles.push(file)
             newPreviews.push(preview)
@@ -883,48 +759,28 @@ async function upload() {
       uploadStatus.value = newUploadStatus
     }, 3000)
 
-    // Reset loading setelah semua selesai
     loading.value = false
-
   } catch (err: any) {
-    // Set semua status ke failed jika error total
     for (let i = 0; i < files.value.length; i++) {
       uploadStatus.value[i] = 'failed'
     }
-    
-    if (err?.data?.error) {
-      errorList.value = [err.data.error]
-    } else if (err?.response?._data?.error) {
-      errorList.value = [err.response._data.error]
-    } else {
-      errorList.value = [
-        "Gagal menghubungi server. Pastikan koneksi dan backend aktif."
-      ]
-    }
+    errorList.value = [err?.data?.error || "Gagal menghubungi server."]
     loading.value = false
   }
 }
 
-// ==================== UPLOAD ULANG ====================
 async function retryUpload(index: number) {
-  if (index < 0 || index >= files.value.length) return
-  if (uploadStatus.value[index] !== 'failed') return
+  if (index < 0 || index >= files.value.length || uploadStatus.value[index] !== 'failed') return
   
-  // Upload ulang satu file
   const file = files.value[index]
   if (!file) return
   
   uploadStatus.value[index] = 'processing'
-  
   const formData = new FormData()
   formData.append("files", file)
   
   try {
-    const res: any = await $api("/ocr", {
-      method: "POST",
-      body: formData
-    })
-    
+    const res: any = await $api("/ocr", { method: "POST", body: formData })
     if (res.results && res.results[0]) {
       const item = res.results[0]
       if (item.error) {
@@ -934,427 +790,80 @@ async function retryUpload(index: number) {
         uploadStatus.value[index] = 'success'
         successList.value.push(`${item.filename}: Berhasil di-upload ulang`)
         
-        // Hapus file yang berhasil setelah 3 detik
         setTimeout(() => {
-          const preview = previews.value[index]
-          if (preview) {
-            try {
-              URL.revokeObjectURL(preview)
-            } catch (e) {
-              // ignore
-            }
+          if (previews.value[index]) {
+            try { URL.revokeObjectURL(previews.value[index]) } catch (e) {}
           }
-          
-          // Hapus dari array
-          const newFiles = [...files.value]
-          newFiles.splice(index, 1)
-          files.value = newFiles
-          
+          files.value.splice(index, 1)
           previews.value.splice(index, 1)
           imageStatus.value.splice(index, 1)
           uploadStatus.value.splice(index, 1)
         }, 3000)
         
-        // Cek apakah semua sudah berhasil
-        const hasFailed = uploadStatus.value.some(status => status === 'failed')
-        if (!hasFailed && uploadStatus.value.length > 0) {
+        if (!uploadStatus.value.some(status => status === 'failed') && uploadStatus.value.length > 0) {
           showGoDraftButton.value = true
         }
       }
     }
   } catch (err: any) {
     uploadStatus.value[index] = 'failed'
-    if (err?.data?.error) {
-      errorList.value.push(err.data.error)
-    } else {
-      errorList.value.push('Gagal upload ulang file')
-    }
-  }
-}
-
-async function retryAllFailed() {
-  // Upload ulang semua file yang gagal
-  const failedIndices: number[] = []
-  for (let i = 0; i < uploadStatus.value.length; i++) {
-    if (uploadStatus.value[i] === 'failed') {
-      failedIndices.push(i)
-    }
-  }
-  
-  if (failedIndices.length === 0) return
-  
-  // Upload semua file yang gagal
-  const formData = new FormData()
-  for (const index of failedIndices) {
-    const file = files.value[index]
-    if (file) {
-      formData.append("files", file)
-      uploadStatus.value[index] = 'processing'
-    }
-  }
-  
-  try {
-    const res: any = await $api("/ocr", {
-      method: "POST",
-      body: formData
-    })
-    
-    // Update status untuk file yang diupload ulang
-    let resultIndex = 0
-    for (const originalIndex of failedIndices) {
-      if (resultIndex < res.results.length) {
-        const item = res.results[resultIndex]
-        if (item.error) {
-          uploadStatus.value[originalIndex] = 'failed'
-          errorList.value.push(`${item.filename}: ${item.error}`)
-        } else {
-          uploadStatus.value[originalIndex] = 'success'
-          successList.value.push(`${item.filename}: Berhasil di-upload ulang`)
-        }
-        resultIndex++
-      }
-    }
-    
-    // Hapus file yang berhasil setelah 3 detik
-    setTimeout(() => {
-      const newFiles: File[] = []
-      const newPreviews: string[] = []
-      const newStatus: string[] = []
-      const newUploadStatus: string[] = []
-      
-      for (let i = 0; i < files.value.length; i++) {
-        const file = files.value[i]
-        const preview = previews.value[i]
-        const status = imageStatus.value[i]
-        const uploadStat = uploadStatus.value[i]
-        
-        if (uploadStat === 'success') {
-          if (preview) {
-            try {
-              URL.revokeObjectURL(preview)
-            } catch (e) {
-              // ignore
-            }
-          }
-        } else {
-          if (file && preview && status && uploadStat) {
-            newFiles.push(file)
-            newPreviews.push(preview)
-            newStatus.push(status)
-            newUploadStatus.push(uploadStat)
-          }
-        }
-      }
-      
-      files.value = newFiles
-      previews.value = newPreviews
-      imageStatus.value = newStatus
-      uploadStatus.value = newUploadStatus
-    }, 3000)
-    
-    // Cek apakah semua sudah berhasil
-    const hasFailed = uploadStatus.value.some(status => status === 'failed')
-    if (!hasFailed && uploadStatus.value.length > 0) {
-      showGoDraftButton.value = true
-    }
-    
-  } catch (err: any) {
-    for (const index of failedIndices) {
-      uploadStatus.value[index] = 'failed'
-    }
-    if (err?.data?.error) {
-      errorList.value.push(err.data.error)
-    } else {
-      errorList.value.push('Gagal upload ulang file')
-    }
+    errorList.value.push('Gagal upload ulang file')
   }
 }
 </script>
 
 <style scoped>
-/* ===== ANIMASI ===== */
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.02);
-  }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
 }
 
-/* ===== CARD ===== */
-.upload-card {
-  transition: all 0.3s ease;
-}
-
-.upload-card:hover {
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12) !important;
-}
-
-.title-icon {
-  animation: pulse 2s infinite;
-}
-
-/* ===== ALERT ===== */
-.animate-slide-down {
-  animation: slideDown 0.5s ease forwards;
-}
-
-/* ===== BUTTON ===== */
-.animate-pulse {
-  animation: pulse 2s infinite;
-}
+.upload-card { transition: all 0.3s ease; }
+.upload-card:hover { box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12) !important; }
+.title-icon { animation: pulse 2s infinite; }
+.animate-slide-down { animation: slideDown 0.5s ease forwards; }
+.animate-pulse { animation: pulse 2s infinite; }
 
 .upload-btn {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
-
 .upload-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
 }
 
-.upload-btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
+.preview-item { opacity: 0; animation: fadeInUp 0.5s ease forwards; }
+.preview-card { transition: all 0.3s ease; position: relative; }
+.preview-card.hovering { transform: scale(1.02); }
+.preview-card.uploaded { border: 2px solid #4caf50; }
+.preview-card.failed { border: 2px solid #f44336; }
+.preview-card.processing { border: 2px solid #ff9800; }
 
-.upload-btn .btn-text {
-  transition: all 0.3s ease;
-}
-
-/* ===== PREVIEW ===== */
-.preview-item {
-  opacity: 0;
-  animation: fadeInUp 0.5s ease forwards;
-}
-
-.preview-card {
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.preview-card.hovering {
-  transform: scale(1.02);
-}
-
-.preview-card.uploaded {
-  border: 2px solid #4caf50;
-}
-
-.preview-card.failed {
-  border: 2px solid #f44336;
-}
-
-.preview-card.processing {
-  border: 2px solid #ff9800;
-}
-
-.action-btn {
-  transition: all 0.2s ease;
-}
-
-.action-btn:hover {
-  transform: scale(1.15);
-}
-
-.action-btn:active {
-  transform: scale(0.9);
-}
-
-.status-bar {
-  transition: all 0.3s ease;
-}
-
-.status-icon {
-  transition: all 0.3s ease;
-}
-
-.status-text {
-  transition: all 0.3s ease;
-}
-
-/* ===== IMAGE TITLE (JUDUL GAMBAR) ===== */
 .image-title-wrapper {
   padding: 4px 8px !important;
   background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
-
-.image-title {
-  font-size: 12px;
-  color: #333;
-  min-height: 24px;
-}
-
-.image-title .file-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 180px;
-}
-
-.image-title .file-extension {
-  color: #999;
-  font-weight: 400;
-  margin-left: 2px;
-  flex-shrink: 0;
-}
-
-.image-title .v-icon {
-  flex-shrink: 0;
-}
-
-/* ===== CROP DIALOG ===== */
-.crop-dialog {
-  transition: all 0.3s ease;
-}
-
-.close-btn {
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  transform: rotate(90deg);
-}
-
-.crop-container-wrapper {
-  position: relative;
-}
+.image-title { font-size: 12px; color: #333; min-height: 24px; }
+.image-title .file-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+.image-title .file-extension { color: #999; font-weight: 400; margin-left: 2px; flex-shrink: 0; }
 
 .crop-loading-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 12px;
-  z-index: 20;
-  animation: fadeInUp 0.3s ease forwards;
-}
-
-.controls-wrapper {
-  animation: slideDown 0.3s ease forwards;
-}
-
-.control-btn {
-  transition: all 0.2s ease;
-}
-
-.control-btn:hover {
-  transform: translateY(-2px);
-}
-
-.zoom-slider {
-  transition: all 0.3s ease;
-}
-
-.crop-info {
-  animation: fadeInUp 0.4s ease forwards;
-}
-
-.info-chip {
-  transition: all 0.3s ease;
-}
-
-.info-chip:hover {
-  transform: scale(1.05);
-}
-
-.cancel-btn {
-  transition: all 0.3s ease;
-}
-
-.cancel-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.apply-btn {
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.apply-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
-}
-
-.apply-btn:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-/* ===== FILE INPUT ===== */
-.file-input-wrapper {
-  transition: all 0.3s ease;
-}
-
-.file-input-wrapper:hover {
-  transform: translateY(-2px);
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 600px) {
-  .controls-wrapper {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .controls-wrapper .v-btn-group {
-    width: 100%;
-  }
-  
-  .controls-wrapper .v-btn-group .v-btn {
-    flex: 1;
-  }
-  
-  .crop-info {
-    flex-wrap: wrap;
-  }
-  
-  .image-title .file-name {
-    max-width: 80px;
-  }
-}
-
-@media (max-width: 400px) {
-  .image-title {
-    font-size: 10px;
-  }
-  
-  .image-title .file-name {
-    max-width: 60px;
-  }
-  
-  .image-title .v-icon {
-    font-size: 14px !important;
-  }
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.5); border-radius: 12px; z-index: 20;
 }
 </style>

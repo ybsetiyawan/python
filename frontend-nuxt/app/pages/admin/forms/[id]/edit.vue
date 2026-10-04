@@ -197,6 +197,9 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute, useNuxtApp } from '#imports'
 import { useAuth } from '~~/app/composables/useAuth'
 
+definePageMeta({
+  middleware: ['auth-menu']
+})
 const route = useRoute()
 const router = useRouter()
 const { getToken } = useAuth()

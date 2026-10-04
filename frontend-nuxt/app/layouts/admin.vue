@@ -117,11 +117,13 @@
     </v-app-bar>
 
     <!-- MAIN CONTENT CONTAINER -->
+    <!-- MAIN CONTENT CONTAINER -->
     <v-main class="main-background">
       <v-container fluid class="pa-6">
         <v-fade-transition mode="out-in">
-          <!-- NuxtPage merender halaman sesuai path URL secara dinamis -->
-          <NuxtPage />
+          <div>
+            <NuxtPage />
+          </div>
         </v-fade-transition>
       </v-container>
     </v-main>
@@ -175,9 +177,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute, useNuxtApp } from "#imports";
 import { useAuth } from "~~/app/composables/useAuth";
+import { watch } from "vue";
 
 const showExportDialog = ref(false);
 const exportPassword = ref("");
@@ -198,6 +201,19 @@ const snackbar = ref({
   color: "success",
 });
 
+watch(
+  () => route.query.error,
+  (errorVal) => {
+    if (errorVal === "unauthorized") {
+      notify("Akses ditolak! Anda tidak memiliki izin untuk membuka halaman tersebut.", "error");
+      
+      // Bersihkan query parameter dari URL agar bersih kembali
+      router.replace({ query: {} });
+    }
+  },
+  { immediate: true }
+);
+
 function notify(message: string, color: string = "success") {
   snackbar.value.text = message;
   snackbar.value.color = color;
@@ -215,7 +231,29 @@ const currentMenuTitle = computed(() => {
   return activeMenu ? activeMenu.name : "Dashboard Panel";
 });
 
-onMounted(async () => {
+// Fungsi mengambil data menu sidebar dari backend
+const fetchSidebarMenus = async () => {
+  try {
+    const { $api } = useNuxtApp();
+    const res: any = await $api("/auth/menus", { method: "GET" });
+    const menuList = res?.data || res;
+
+    if (Array.isArray(menuList)) {
+      menus.value = menuList;
+    }
+  } catch (err: any) {
+    console.error("Gagal memuat menu sidebar:", err);
+  } finally {
+    menuLoading.value = false;
+  }
+};
+
+// Listener event kustom agar sidebar otomatis update ketika ada perubahan menu / hak akses
+const handleMenuUpdate = () => {
+  fetchSidebarMenus();
+};
+
+onMounted(() => {
   const userData = localStorage.getItem("user_data");
   if (userData) {
     try {
@@ -226,19 +264,14 @@ onMounted(async () => {
     }
   }
 
-  try {
-    const { $api } = useNuxtApp();
-    const res: any = await $api("/auth/menus", { method: "GET" });
-    const menuList = res?.data || res;
+  fetchSidebarMenus();
 
-    if (Array.isArray(menuList)) {
-      menus.value = menuList;
-    }
-  } catch (err: any) {
-    notify(err?.data?.message || "Gagal memuat hak akses menu", "error");
-  } finally {
-    menuLoading.value = false;
-  }
+  // Daftarkan listener event dari halaman manajemen menu
+  window.addEventListener("menu-access-updated", handleMenuUpdate);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("menu-access-updated", handleMenuUpdate);
 });
 
 const userInitials = computed(() => {

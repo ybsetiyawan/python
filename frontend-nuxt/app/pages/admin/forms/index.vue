@@ -102,19 +102,27 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useNuxtApp } from '#imports'
 
-// Definisikan layout dan middleware di sini (di luar onMounted)
 definePageMeta({
   layout: 'admin',
-  middleware: ['auth-menu'] // <<-- Otomatis diproteksi secara dinamis di sini
+  middleware: ['auth-menu']
 })
 
 const router = useRouter()
 
-const forms = ref([])
+interface FormItem {
+  id: string | number
+  title: string
+  description?: string
+  structure?: any
+  created_at?: string
+  createdAt?: string
+}
+
+const forms = ref<FormItem[]>([])
 const pending = ref(true)
 const toast = reactive({ show: false, message: '' })
 
@@ -122,9 +130,9 @@ const fetchForms = async () => {
   pending.value = true
   try {
     const { $api } = useNuxtApp()
-    const res = await $api('/forms')
+    const res: any = await $api('/forms')
     forms.value = res.data || res || []
-  } catch (err) {
+  } catch (err: any) {
     if (err.status === 401 || err.statusCode === 401) {
       router.push('/login')
       return
@@ -135,18 +143,16 @@ const fetchForms = async () => {
   }
 }
 
-// onMounted sekarang bersih, hanya fokus mengambil data form saja
 onMounted(async () => {
   await fetchForms()
 })
 
-// Tema warna bergantian untuk setiap kartu
 const themes = ['theme-indigo', 'theme-emerald', 'theme-amber', 'theme-rose', 'theme-cyan']
-const getCardTheme = (index) => {
+const getCardTheme = (index: number) => {
   return themes[index % themes.length]
 }
 
-const parseStructureLength = (structure) => {
+const parseStructureLength = (structure: any) => {
   if (!structure) return 0
   if (typeof structure === 'string') {
     try {
@@ -158,19 +164,19 @@ const parseStructureLength = (structure) => {
   return Array.isArray(structure) ? structure.length : 0
 }
 
-const showToast = (msg) => {
+const showToast = (msg: string) => {
   toast.message = msg
   toast.show = true
   setTimeout(() => toast.show = false, 2500)
 }
 
-const copyPublicLink = (id) => {
+const copyPublicLink = (id: string | number) => {
   const url = `${window.location.origin}/admin/forms/${id}`
   navigator.clipboard.writeText(url)
   showToast('Link formulir berhasil disalin!')
 }
 
-const formatDate = (dateStr) => {
+const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -181,7 +187,6 @@ const formatDate = (dateStr) => {
 </script>
 
 <style scoped>
-/* (Bagian style CSS tetap sama seperti sebelumnya) */
 .admin-dashboard {
   max-width: 1080px;
   margin: 0 auto;

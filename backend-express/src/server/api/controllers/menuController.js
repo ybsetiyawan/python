@@ -2,7 +2,7 @@ const { MenuRepository } = require('../../repository/menuRepository');
 const { v4: uuidv4 } = require('uuid');
 
 class MenuController {
-  // Ambil semua menu untuk Admin
+  // Ambil semua menu untuk Admin dashboard, termasuk yang draft/tidak publish jika diperlukan
   static async getAllMenus(req, res) {
     try {
       const onlyPublished = req.query.published === 'true';
@@ -102,11 +102,14 @@ class MenuController {
       const { userId } = req.params;
       const allMenus = await MenuRepository.findAll();
       const userMenus = await MenuRepository.findByUserId(userId);
-      const userMenuIds = userMenus.map(m => m.id);
+      
+      // Ambil menggunakan menu_id dari tabel user_menus
+      const userMenuIds = userMenus.map(m => m.menu_id);
 
       const data = allMenus.map(menu => ({
         ...menu,
-        is_assigned: userMenuIds.includes(menu.id)
+        is_assigned: userMenuIds.includes(menu.id),
+        is_checked: userMenuIds.includes(menu.id)
       }));
 
       return res.json({ success: true, data });
@@ -115,7 +118,6 @@ class MenuController {
       return res.status(500).json({ success: false, error: err.message });
     }
   }
-
   // Simpan / Sync hak akses menu user
   static async saveUserMenus(req, res) {
     try {

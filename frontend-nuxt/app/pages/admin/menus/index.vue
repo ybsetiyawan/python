@@ -1,4 +1,5 @@
 <template>
+  <!-- SINGLE ROOT NODE UNTUK MENCEGAH ERROR TRANSITION VUE -->
   <div class="menu-management-page">
     
     <!-- TOP HEADER -->
@@ -11,25 +12,38 @@
         <h1>Manajemen Menu Navigasi & Hak Akses</h1>
         <p>Kelola daftar modul, jalur path, urutan tampil, ikon, status publikasi, serta hak akses user.</p>
       </div>
-      <div class="header-action d-flex flex-wrap gap-2">
-        <v-btn
-          color="indigo-darken-2"
-          class="rounded-xl px-5 text-none font-weight-bold elevation-2"
-          height="46"
-          prepend-icon="mdi-shield-account-outline"
-          @click="openUserAccessDialog"
-        >
-          Atur Akses User
-        </v-btn>
-        <v-btn
-          color="indigo-darken-2"
-          class="rounded-xl px-5 text-none font-weight-bold elevation-2"
-          height="46"
-          prepend-icon="mdi-plus"
-          @click="openAddDialog"
-        >
-          Tambah Menu Baru
-        </v-btn>
+      
+      <!-- Tombol Header Ikon / Compact -->
+      <div class="header-actions-group">
+        <v-tooltip location="top">
+          <template v-slot:activator="{ props }">
+            <v-btn
+              v-bind="props"
+              icon="mdi-shield-account-outline"
+              color="indigo-darken-2"
+              variant="flat"
+              class="rounded-xl elevation-1"
+              size="large"
+              @click="openUserAccessDialog"
+            ></v-btn>
+          </template>
+          <span>Atur Hak Akses User</span>
+        </v-tooltip>
+
+        <v-tooltip location="top">
+          <template v-slot:activator="{ props }">
+            <v-btn
+              v-bind="props"
+              icon="mdi-plus"
+              color="indigo-darken-2"
+              variant="flat"
+              class="rounded-xl elevation-1"
+              size="large"
+              @click="openAddDialog"
+            ></v-btn>
+          </template>
+          <span>Tambah Menu Baru</span>
+        </v-tooltip>
       </div>
     </div>
 
@@ -89,7 +103,7 @@
 
         <!-- Kolom Aksi -->
         <template v-slot:item.actions="{ item }">
-          <div class="d-flex align-center gap-1">
+          <div class="d-flex align-center" style="gap: 4px;">
             <v-btn
               icon="mdi-pencil-outline"
               size="small"
@@ -112,10 +126,10 @@
     </v-card>
 
     <!-- DIALOG FORM TAMBAH / EDIT -->
-    <v-dialog v-model="dialog.show" max-width="500" persistent>
-      <v-card class="rounded-2xl pa-6 elevation-4">
+    <v-dialog v-model="dialog.show" max-width="480" persistent>
+      <v-card class="rounded-2xl pa-5 elevation-4">
         <div class="d-flex justify-space-between align-center mb-4">
-          <h3 class="text-h6 font-weight-bold text-slate-900">
+          <h3 class="text-subtitle-1 font-weight-bold text-slate-900">
             {{ dialog.isEdit ? 'Edit Menu Sistem' : 'Tambah Menu Baru' }}
           </h3>
           <v-btn icon="mdi-close" variant="text" size="small" @click="dialog.show = false"></v-btn>
@@ -129,7 +143,7 @@
               placeholder="Contoh: Manajemen Form"
               variant="outlined"
               density="comfortable"
-              :rules="[v => !!v || 'Nama menu wajib diisi']"
+              :rules="[(v: string) => !!v || 'Nama menu wajib diisi']"
               hide-details="auto"
               class="rounded-lg"
             ></v-text-field>
@@ -142,14 +156,14 @@
               placeholder="Contoh: /admin/forms"
               variant="outlined"
               density="comfortable"
-              :rules="[v => !!v || 'Path wajib diisi']"
+              :rules="[(v: string) => !!v || 'Path wajib diisi']"
               hide-details="auto"
             ></v-text-field>
           </div>
 
           <div class="mb-3">
             <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">
-              Icon MDI (Contoh: mdi:view-dashboard atau mdi-view-dashboard)
+              Icon MDI (Contoh: mdi:view-dashboard)
             </label>
             <v-text-field
               v-model="form.icon"
@@ -160,9 +174,9 @@
             ></v-text-field>
           </div>
 
-          <div class="row-fields d-flex gap-3 mb-3">
+          <div class="d-flex mb-3" style="gap: 12px;">
             <div class="flex-grow-1">
-              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Sort Order (Urutan)</label>
+              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Sort Order</label>
               <v-text-field
                 v-model.number="form.sort_order"
                 type="number"
@@ -185,7 +199,7 @@
             </div>
           </div>
 
-          <div class="d-flex justify-end gap-2 mt-6">
+          <div class="d-flex justify-end mt-5" style="gap: 8px;">
             <v-btn
               variant="text"
               color="slate-600"
@@ -208,18 +222,18 @@
     </v-dialog>
 
     <!-- DIALOG PENGATURAN HAK AKSES USER -->
-    <v-dialog v-model="accessDialog.show" max-width="580" persistent>
-      <v-card class="rounded-2xl pa-6 elevation-4">
-        <div class="d-flex justify-space-between align-center mb-4">
+    <v-dialog v-model="accessDialog.show" max-width="520" persistent>
+      <v-card class="rounded-2xl pa-5 elevation-4">
+        <div class="d-flex justify-space-between align-center mb-3">
           <div>
-            <h3 class="text-h6 font-weight-bold text-slate-900">Pengaturan Hak Akses Menu User</h3>
-            <p class="text-caption text-slate-500">Pilih user karyawan dan centang modul menu yang diizinkan.</p>
+            <h3 class="text-subtitle-1 font-weight-bold text-slate-900">Pengaturan Hak Akses Menu User</h3>
+            <p class="text-caption text-slate-500 mb-0">Pilih user karyawan dan centang modul menu yang diizinkan.</p>
           </div>
           <v-btn icon="mdi-close" variant="text" size="small" @click="accessDialog.show = false"></v-btn>
         </div>
 
-        <!-- Pilih User menggunakan v-autocomplete -->
-        <div class="mb-4">
+        <!-- Pilih User -->
+        <div class="mb-3">
           <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Cari / Pilih User Karyawan</label>
           <v-autocomplete
             v-model="accessDialog.selectedUserId"
@@ -245,28 +259,28 @@
         <div class="mb-4">
           <div class="d-flex justify-space-between align-center mb-2">
             <span class="text-caption font-weight-bold text-slate-700">Daftar Menu Navigasi</span>
-            <span v-if="accessDialog.menuItems.length > 0" class="text-caption text-indigo-darken-2 font-weight-medium">
-              {{ accessDialog.menuItems.filter(m => m.is_checked).length }} / {{ accessDialog.menuItems.length }} Dipilih
+            <span v-if="accessDialog.menuItems.length > 0" class="text-caption text-indigo-darken-2 font-weight-bold">
+              {{ accessDialog.menuItems.filter((m: any) => m.is_checked).length }} / {{ accessDialog.menuItems.length }} Dipilih
             </span>
           </div>
 
-          <div class="menu-access-container border rounded-xl pa-3 bg-slate-50" style="max-height: 260px; overflow-y: auto;">
-            <div v-if="accessDialog.loadingMenus" class="text-center py-6 text-slate-500">
-              <v-progress-circular indeterminate color="indigo-darken-2" size="24" width="3"></v-progress-circular>
+          <div class="menu-access-container border rounded-xl pa-2 bg-slate-50" style="max-height: 240px; overflow-y: auto;">
+            <div v-if="accessDialog.loadingMenus" class="text-center py-5 text-slate-500">
+              <v-progress-circular indeterminate color="indigo-darken-2" size="22" width="3"></v-progress-circular>
               <div class="mt-2 text-caption font-weight-medium">Memuat hak akses menu...</div>
             </div>
-            <div v-else-if="!accessDialog.selectedUserId" class="text-center py-6 text-slate-400 text-caption">
-              <v-icon size="28" color="slate-300" class="mb-1">mdi-account-arrow-left-outline</v-icon>
-              <div>Silakan pilih user terlebih dahulu untuk mengatur hak akses menu.</div>
+            <div v-else-if="!accessDialog.selectedUserId" class="text-center py-5 text-slate-400 text-caption">
+              <v-icon size="24" color="slate-300" class="mb-1">mdi-account-arrow-left-outline</v-icon>
+              <div>Silakan pilih user terlebih dahulu untuk mengatur hak akses.</div>
             </div>
-            <div v-else-if="accessDialog.menuItems.length === 0" class="text-center py-6 text-slate-400 text-caption">
+            <div v-else-if="accessDialog.menuItems.length === 0" class="text-center py-5 text-slate-400 text-caption">
               Belum ada data menu sistem yang tersedia.
             </div>
-            <div v-else class="d-flex flex-column gap-1">
+            <div v-else class="d-flex flex-column" style="gap: 4px;">
               <div 
                 v-for="menu in accessDialog.menuItems" 
                 :key="menu.id"
-                class="menu-checkbox-item px-3 py-2 rounded-lg bg-white border transition-all"
+                class="menu-checkbox-item px-3 py-1.5 rounded-lg bg-white border transition-all"
                 :class="{ 'border-indigo-light bg-indigo-subtle': menu.is_checked }"
               >
                 <v-checkbox
@@ -287,7 +301,7 @@
           </div>
         </div>
 
-        <div class="d-flex justify-end gap-2 pt-2 border-top">
+        <div class="d-flex justify-end pt-2 border-top" style="gap: 8px;">
           <v-btn
             variant="text"
             color="slate-600"
@@ -310,16 +324,16 @@
     </v-dialog>
 
     <!-- DIALOG KONFIRMASI HAPUS -->
-    <v-dialog v-model="deleteDialog.show" max-width="380">
-      <v-card class="rounded-2xl pa-6 text-center elevation-4">
+    <v-dialog v-model="deleteDialog.show" max-width="360">
+      <v-card class="rounded-2xl pa-5 text-center elevation-4">
         <div class="modal-icon-container bg-red-light mb-3 mx-auto">
-          <v-icon color="error" size="28">mdi-alert-circle-outline</v-icon>
+          <v-icon color="error" size="26">mdi-alert-circle-outline</v-icon>
         </div>
-        <h3 class="text-h6 font-weight-bold text-slate-900 mb-2">Hapus Menu Ini?</h3>
-        <p class="text-body-2 text-slate-600 mb-6">
-          Menu <strong class="text-slate-900">{{ deleteDialog.item?.name }}</strong> akan dihapus permanen dari sistem hak akses.
+        <h3 class="text-subtitle-1 font-weight-bold text-slate-900 mb-1">Hapus Menu Ini?</h3>
+        <p class="text-body-2 text-slate-600 mb-5">
+          Menu <strong class="text-slate-900">{{ deleteDialog.item?.name }}</strong> akan dihapus permanen dari sistem.
         </p>
-        <div class="d-flex gap-3 justify-center">
+        <div class="d-flex justify-center" style="gap: 8px;">
           <v-btn
             variant="outlined"
             class="flex-grow-1 rounded-xl text-none font-weight-bold"
@@ -339,36 +353,68 @@
       </v-card>
     </v-dialog>
 
+    <!-- GLOBAL TOAST NOTIFICATION -->
+    <v-snackbar
+      v-model="toast.show"
+      :color="toast.color"
+      location="top right"
+      timeout="3500"
+      elevation="4"
+      rounded="pill"
+    >
+      <div class="d-flex align-center" style="gap: 8px;">
+        <v-icon :icon="toast.icon" size="20"></v-icon>
+        <span class="font-weight-semibold text-body-2">{{ toast.message }}</span>
+      </div>
+    </v-snackbar>
+
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useNuxtApp } from '#imports'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ 
+  layout: 'admin',
+  middleware: ['auth-menu']
+})
 
 const { $api } = useNuxtApp()
 
-const menus = ref([])
-const users = ref([]) 
+const menus = ref<any[]>([])
+const users = ref<any[]>([]) 
 const loading = ref(true)
 const saving = ref(false)
 const deleting = ref(false)
 
+const toast = reactive({
+  show: false,
+  message: '',
+  color: 'success',
+  icon: 'mdi-check-circle'
+})
+
+const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  toast.message = message
+  toast.color = type === 'success' ? 'indigo-darken-2' : 'error'
+  toast.icon = type === 'success' ? 'mdi-check-circle-outline' : 'mdi-alert-circle-outline'
+  toast.show = true
+}
+
 const headers = [
-  { title: 'Urutan', key: 'sort_order', align: 'start', width: '90px' },
+  { title: 'Urutan', key: 'sort_order', align: 'start' as const, width: '90px' },
   { title: 'Ikon', key: 'icon', width: '220px' },
   { title: 'Nama Menu', key: 'name' },
   { title: 'Path URL', key: 'path' },
   { title: 'Status', key: 'is_publish', width: '130px' },
-  { title: 'Aksi', key: 'actions', align: 'end', sortable: false, width: '100px' }
+  { title: 'Aksi', key: 'actions', align: 'end' as const, sortable: false, width: '100px' }
 ]
 
 const dialog = reactive({
   show: false,
   isEdit: false,
-  editId: null
+  editId: null as any
 })
 
 const form = reactive({
@@ -381,26 +427,26 @@ const form = reactive({
 
 const accessDialog = reactive({
   show: false,
-  selectedUserId: null,
+  selectedUserId: null as any,
   loadingUsers: false,
   loadingMenus: false,
   saving: false,
-  menuItems: []
+  menuItems: [] as any[]
 })
 
 const deleteDialog = reactive({
   show: false,
-  item: null
+  item: null as any
 })
 
 const fetchMenus = async () => {
   loading.value = true
   try {
-    const res = await $api('/menus', { method: 'GET' })
+    const res: any = await $api('/menus', { method: 'GET' })
     if (res && res.success) {
       menus.value = res.data
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Gagal mengambil data menu:', err)
   } finally {
     loading.value = false
@@ -410,7 +456,7 @@ const fetchMenus = async () => {
 const fetchUsers = async () => {
   accessDialog.loadingUsers = true
   try {
-    const res = await $api('/users', { method: 'GET' })
+    const res: any = await $api('/users', { method: 'GET' })
     if (res) {
       if (Array.isArray(res)) {
         users.value = res
@@ -420,7 +466,7 @@ const fetchUsers = async () => {
         users.value = res.data.rows
       }
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Gagal mengambil daftar user:', err)
   } finally {
     accessDialog.loadingUsers = false
@@ -441,14 +487,26 @@ const fetchUserMenus = async () => {
   }
   accessDialog.loadingMenus = true
   try {
-    const res = await $api(`/menus/user/${accessDialog.selectedUserId}`, { method: 'GET' })
+    const res: any = await $api(`/menus/user/${accessDialog.selectedUserId}`, { method: 'GET' })
+    
     if (res && res.success) {
-      accessDialog.menuItems = res.data.map(m => ({
-        ...m,
-        is_checked: Boolean(m.is_assigned)
-      }))
+      accessDialog.menuItems = res.data.map((m: any) => {
+        const assignedFlag = m.is_assigned ?? m.has_access ?? m.is_checked ?? m.status ?? m.checked ?? false
+        const isChecked = 
+          assignedFlag === true || 
+          assignedFlag === 1 || 
+          assignedFlag === '1' || 
+          assignedFlag === 'Y' || 
+          assignedFlag === 'true' ||
+          assignedFlag > 0
+          
+        return {
+          ...m,
+          is_checked: isChecked
+        }
+      })
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Gagal mengambil hak akses menu user:', err)
   } finally {
     accessDialog.loadingMenus = false
@@ -460,21 +518,24 @@ const saveUserAccess = async () => {
   accessDialog.saving = true
   try {
     const payload = {
-      menuIds: accessDialog.menuItems.filter(m => m.is_checked).map(m => m.id)
+      menuIds: accessDialog.menuItems.filter((m: any) => m.is_checked).map((m: any) => m.id)
     }
-    
-    const res = await $api(`/menus/user/${accessDialog.selectedUserId}`, {
+
+    const res: any = await $api(`/menus/user/${accessDialog.selectedUserId}`, {
       method: 'POST',
       body: payload
     })
 
     if (res && res.success) {
-      alert('Hak akses menu berhasil disimpan!')
+      showToast('Hak akses menu berhasil disimpan!')
       accessDialog.show = false
+      window.dispatchEvent(new CustomEvent('menu-access-updated'))
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Gagal menyimpan hak akses:', err)
-    alert(err?.data?.error || 'Terjadi kesalahan saat menyimpan hak akses')
+    // Menangkap pesan error spesifik dari backend (message atau error)
+    const backendMessage = err?.data?.message || err?.data?.error || err?.message || 'Terjadi kesalahan saat menyimpan hak akses'
+    showToast(backendMessage, 'error')
   } finally {
     accessDialog.saving = false
   }
@@ -491,7 +552,7 @@ const openAddDialog = () => {
   dialog.show = true
 }
 
-const openEditDialog = (item) => {
+const openEditDialog = (item: any) => {
   dialog.isEdit = true
   dialog.editId = item.id
   form.name = item.name
@@ -510,23 +571,28 @@ const saveMenu = async () => {
         method: 'PUT',
         body: form
       })
+      showToast('Menu berhasil diperbarui!')
     } else {
       await $api('/menus', {
         method: 'POST',
         body: form
       })
+      showToast('Menu baru berhasil ditambahkan!')
     }
     dialog.show = false
     await fetchMenus()
-  } catch (err) {
+    window.dispatchEvent(new CustomEvent('menu-access-updated'))
+  } catch (err: any) {
     console.error('Gagal menyimpan menu:', err)
-    alert(err?.data?.error || 'Terjadi kesalahan saat menyimpan menu')
+    // Menangkap pesan error spesifik dari backend
+    const backendMessage = err?.data?.message || err?.data?.error || err?.message || 'Terjadi kesalahan saat menyimpan menu'
+    showToast(backendMessage, 'error')
   } finally {
     saving.value = false
   }
 }
 
-const confirmDelete = (item) => {
+const confirmDelete = (item: any) => {
   deleteDialog.item = item
   deleteDialog.show = true
 }
@@ -537,10 +603,14 @@ const executeDelete = async () => {
   try {
     await $api(`/menus/${deleteDialog.item.id}`, { method: 'DELETE' })
     deleteDialog.show = false
+    showToast('Menu berhasil dihapus!')
     await fetchMenus()
-  } catch (err) {
+    window.dispatchEvent(new CustomEvent('menu-access-updated'))
+  } catch (err: any) {
     console.error('Gagal menghapus menu:', err)
-    alert(err?.data?.error || 'Gagal menghapus menu')
+    // Menangkap pesan error spesifik dari backend
+    const backendMessage = err?.data?.message || err?.data?.error || err?.message || 'Gagal menghapus menu'
+    showToast(backendMessage, 'error')
   } finally {
     deleting.value = false
   }
@@ -550,63 +620,68 @@ onMounted(() => {
   fetchMenus()
 })
 </script>
-
 <style scoped>
 .menu-management-page {
   max-width: 1140px;
   margin: 0 auto;
-  padding: 36px 24px 60px 24px;
+  padding: 28px 20px 50px 20px;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #1e293b;
-  background-color: #f8fafc;
-  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .page-header {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 28px 32px;
+  border-radius: 16px;
+  padding: 20px 26px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 30px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.02);
+  gap: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.02);
+}
+
+.header-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .system-badge {
   background: #eef2ff;
   color: #4f46e5;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
 .header-info h1 {
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 800;
   color: #0f172a;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.4px;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.3px;
 }
 
 .header-info p {
-  font-size: 13px;
+  font-size: 12px;
   color: #64748b;
   margin: 0;
 }
 
 .modal-icon-container {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -640,14 +715,14 @@ onMounted(() => {
 
 :deep(.v-data-table td) {
   border-bottom: 1px solid #f1f5f9 !important;
-  padding-top: 12px !important;
-  padding-bottom: 12px !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
 }
 
 .slide-up {
   opacity: 0;
-  transform: translateY(12px);
-  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateY(10px);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .delay-1 { animation-delay: 0.05s; }
@@ -660,7 +735,11 @@ onMounted(() => {
   .page-header {
     flex-direction: column;
     align-items: flex-start;
-    padding: 24px;
+    padding: 20px;
+  }
+  .header-actions-group {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 </style>

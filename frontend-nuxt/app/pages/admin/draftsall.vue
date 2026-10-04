@@ -1,89 +1,97 @@
 <template>
-  <v-container class="py-8">
+  <div class="all-drafts-page-wrapper">
+    <v-container class="py-6" fluid>
 
-    <!-- HEADER -->
-    <div class="mb-6">
-      <div class="text-h5 font-weight-bold">
-        Data All KTP Belum Verifikasi - Harap segera di sesuaikan data nya  
-      </div>
-      <div class="text-caption text-grey">
-        Total {{ total }} data
-      </div>
-    </div>
-
-    <!-- TABLE -->
-    <v-card elevation="3">
-
-      <!-- TOOLBAR -->
-      <v-card-title class="py-3">
-        <v-text-field
-          v-model="search"
-          label="Search File Name / Created By"
-          density="compact"
-          prepend-inner-icon="mdi-magnify"
-          hide-details
-          clearable
-          variant="outlined"
-          style="max-width:380px"
-        />
-      </v-card-title>
-
-      <v-divider/>
-
-      <v-data-table
-        :headers="headers"
-        :items="items"
-        :loading="loading"
-        item-value="id"
-        density="comfortable"
-        hover
-        :items-per-page="-1"
-        hide-default-footer
-      >
-        <!-- STATUS -->
-        <template #item.status="{ item }">
-          <v-chip
-            color="orange"
-            size="small"
-            variant="flat"
-          >
-            DRAFT
-          </v-chip>
-        </template>
-
-        <!-- UPDATED DATE -->
-        <template #item.updated_at="{ item }">
-          {{ formatDate(item.updated_at) }}
-        </template>
-      </v-data-table>
-
-      <!-- PAGINATION -->
-      <v-divider/>
-      <div class="d-flex justify-space-between align-center px-4 py-2">
-        <div class="text-caption text-grey-darken-1">
-          Showing {{ items.length }} of {{ total }} data
+      <!-- HEADER -->
+      <div class="mb-6">
+        <div class="text-h5 font-weight-bold text-slate-900">
+          Data All KTP Belum Verifikasi - Harap segera di sesuaikan data nya  
         </div>
-        <v-pagination
-          v-model="page"
-          :length="totalPages"
-          :total-visible="5"
-          size="small"
-          density="compact"
-          @update:modelValue="changePage"
-        />
+        <div class="text-caption text-slate-500">
+          Total {{ total }} data
+        </div>
       </div>
-    </v-card>
 
-    <!-- SNACKBAR -->
-    <v-snackbar
-      v-model="snackbar.show"
-      :color="snackbar.color"
-      timeout="2500"
-    >
-      {{ snackbar.message }}
-    </v-snackbar>
+      <!-- TABLE -->
+      <v-card elevation="0" class="rounded-2xl border elevation-0 bg-white pa-4">
 
-  </v-container>
+        <!-- TOOLBAR -->
+        <div class="py-3 d-flex align-center">
+          <v-text-field
+            v-model="search"
+            label="Search File Name / Created By"
+            density="compact"
+            prepend-inner-icon="mdi-magnify"
+            hide-details
+            clearable
+            variant="outlined"
+            style="max-width:380px"
+            class="rounded-xl"
+          />
+        </div>
+
+        <v-divider class="my-3"/>
+
+        <v-data-table
+          :headers="headers"
+          :items="items"
+          :loading="loading"
+          item-value="id"
+          density="comfortable"
+          hover
+          :items-per-page="-1"
+          hide-default-footer
+          class="custom-table"
+        >
+          <!-- STATUS -->
+          <template #item.status="{ item }">
+            <v-chip
+              color="warning"
+              size="small"
+              variant="flat"
+              class="font-weight-bold"
+            >
+              DRAFT
+            </v-chip>
+          </template>
+
+          <!-- UPDATED DATE -->
+          <template #item.updated_at="{ item }">
+            <span class="text-slate-600 text-body-2">{{ formatDate(item.updated_at) }}</span>
+          </template>
+        </v-data-table>
+
+        <!-- PAGINATION -->
+        <v-divider class="my-3"/>
+        <div class="d-flex justify-space-between align-center px-2 py-2">
+          <div class="text-caption text-slate-500">
+            Showing {{ items.length }} of {{ total }} data
+          </div>
+          <v-pagination
+            v-model="page"
+            :length="totalPages"
+            :total-visible="5"
+            size="small"
+            density="compact"
+            @update:modelValue="changePage"
+            color="indigo-darken-2"
+          />
+        </div>
+      </v-card>
+
+      <!-- SNACKBAR -->
+      <v-snackbar
+        v-model="snackbar.show"
+        :color="snackbar.color"
+        timeout="2500"
+        elevation="4"
+        rounded="pill"
+      >
+        {{ snackbar.message }}
+      </v-snackbar>
+
+    </v-container>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -91,7 +99,10 @@ import { ref, onMounted, watch } from "vue"
 import { useRouter, useNuxtApp } from "#imports"
 import { useAuth } from "~~/app/composables/useAuth"
 
-definePageMeta({ layout: "admin" })
+definePageMeta({ 
+  layout: "admin",
+  middleware: ["auth-menu"] // Proteksi akses menu secara dinamis
+})
 
 const router = useRouter()
 const { getToken } = useAuth()
@@ -103,7 +114,7 @@ const limit = ref(10)
 const total = ref(0)
 const totalPages = ref(1)
 const search = ref("")
-const snackbar = ref({ show:false, message:"", color:"success" })
+const snackbar = ref({ show: false, message: "", color: "success" })
 
 const headers = [
   { title: "File Name", key: "original_filename" },
@@ -124,25 +135,53 @@ async function loadData() {
   try {
     loading.value = true
     const { $api } = useNuxtApp()
-    const res:any = await $api("/ocr/drafts/all",{
+    const res: any = await $api("/ocr/drafts/all", {
       query: { page: page.value, limit: limit.value, search: search.value }
     })
     items.value = res.data
     total.value = res.pagination.total
     totalPages.value = Math.ceil(total.value / limit.value)
-  } catch(err:any){
-    if(err.status !== 401){ console.error(err) }
-  } finally{ loading.value = false }
+  } catch (err: any) {
+    if (err.status !== 401) { console.error(err) }
+  } finally { loading.value = false }
 }
 
-function changePage(p:number){ page.value = p; loadData() }
-watch(search,()=>{ page.value = 1; loadData() })
+function changePage(p: number) { page.value = p; loadData() }
+watch(search, () => { page.value = 1; loadData() })
 
-function formatDate(date:string){
-  if(!date) return ""
+function formatDate(date: string) {
+  if (!date) return ""
   const d = new Date(date)
-  return new Intl.DateTimeFormat("id-ID",{
-    dateStyle:"medium", timeStyle:"short", timeZone:"Asia/Jakarta"
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta"
   }).format(d)
 }
 </script>
+
+<style scoped>
+.all-drafts-page-wrapper {
+  max-width: 1140px;
+  margin: 0 auto;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+:deep(.v-data-table) {
+  background: transparent !important;
+}
+
+:deep(.v-data-table-header th) {
+  font-weight: 700 !important;
+  color: #475569 !important;
+  background-color: #f8fafc !important;
+  text-transform: uppercase;
+  font-size: 11px !important;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+:deep(.v-data-table td) {
+  border-bottom: 1px solid #f1f5f9 !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+</style>

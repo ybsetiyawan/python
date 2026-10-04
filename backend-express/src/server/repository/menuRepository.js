@@ -5,13 +5,12 @@ class MenuRepository {
   // Ambil daftar menu yang hanya diizinkan untuk user tertentu
   static async findByUserId(userId) {
     const query = `
-      SELECT m.* 
-      FROM menus m
-      JOIN user_menus um ON m.id = um.menu_id
-      WHERE um.user_id = $1 AND m.is_publish = 'Y'
-      ORDER BY m.sort_order ASC
+      SELECT menu_id 
+      FROM user_menus 
+      WHERE user_id = $1
     `
     const result = await pool.query(query, [userId])
+    // result.rows akan berisi array bersih seperti: [ { menu_id: '...' }, { menu_id: '...' } ]
     return result.rows
   }
 
@@ -27,7 +26,7 @@ class MenuRepository {
     return result.rows
   }
 
-  // Ambil menu berdasarkan ID
+  // Ambil menu berdasarkan ID untuk mengelola menu tertentu (update/delete)
   static async findById(menuId) {
     const query = `SELECT * FROM menus WHERE id = $1`
     const result = await pool.query(query, [menuId])

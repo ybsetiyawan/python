@@ -35,7 +35,7 @@ export default defineNuxtPlugin(() => {
         // 2. Tangkap Server Error (500)
         else if (response.status >= 500) {
           // Kamu bisa gunakan alert atau sistem toast/snackbar di sini
-          alert("Terjadi kesalahan pada server (500). Silakan coba beberapa saat lagi.")
+          // alert("Terjadi kesalahan pada server (500). Silakan coba beberapa saat lagi.")
         }
       }
     }

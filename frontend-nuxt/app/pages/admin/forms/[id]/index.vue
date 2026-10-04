@@ -204,7 +204,8 @@ import { useAuth } from '~~/app/composables/useAuth'
 
 // Daftarkan metadata halaman agar menggunakan layout admin dan proteksi middleware jika ada
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  middleware: ['auth-menu'] // Middleware untuk memeriksa autentikasi dan hak akses
 })
 
 const route = useRoute()

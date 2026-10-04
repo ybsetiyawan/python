@@ -1,5 +1,5 @@
 <script setup>
-navigateTo('/admin/upload')
+navigateTo('/login')
 </script>
 
 <template>

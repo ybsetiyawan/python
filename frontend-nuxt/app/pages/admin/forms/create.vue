@@ -216,9 +216,10 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useNuxtApp } from '#imports'
 import { useAuth } from '~~/app/composables/useAuth'
 
-// definePageMeta({
-//   layout: 'admin'
-// })
+definePageMeta({
+  // layout: 'admin',
+  middleware: ['auth-menu']
+})
 
 const router = useRouter()
 const { getToken } = useAuth() // Properti 'user' dihapus karena tidak ada di return type useAuth
