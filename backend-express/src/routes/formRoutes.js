@@ -30,42 +30,36 @@ const storage = multer.diskStorage({
   }
 })
 
-const upload = multer({ storage: storage })
-
-// -------------------------------------------------------------
-// 0. GET /api/forms (Ambil Semua Daftar Master Form)
-// -------------------------------------------------------------
-
-
-// jika findAll tanpa userID
-// router.get('/', async (req, res) => {
-//   try {
-//     const forms = await FormRepository.findAll()
-
-//     return res.json({
-//       success: true,
-//       data: forms || []
-//     })
-//   } catch (error) {
-//     console.error('Error get all forms:', error)
-//     return res.status(500).json({ success: false, message: error.message })
-//   }
-// })
-
+// Konfigurasi Storage & Batasan Validasi File Multer di Backend
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // Batas maksimal 5 MB per file
+    files: 10                   // Batas total maksimum file dalam sekali submit
+  },
+  fileFilter: (req, file, cb) => {
+    // Validasi Ekstensi / Mime Type yang diizinkan
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
+    
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true)
+    } else {
+      cb(new Error('Format file tidak didukung! Harap unggah file berformat JPG, PNG, atau PDF.'), false)
+    }
+  }
+})
 
 // -------------------------------------------------------------
 // 0. GET /api/forms (Ambil Daftar Master Form Milik User Login)
 // -------------------------------------------------------------
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    // Ambil user_id secara aman dari token JWT
     const userId = req.user?.id || req.user?.userId || null
 
     if (!userId) {
       return res.status(401).json({ success: false, message: 'Unauthorized: User ID tidak ditemukan dalam token' })
     }
 
-    // Panggil findAll dengan menyertakan userId agar data terfilter otomatis
     const forms = await FormRepository.findAll(userId)
 
     return res.json({
@@ -78,18 +72,66 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 })
 
+const ExcelJS = require('exceljs');
+
+// -------------------------------------------------------------
+// GET /api/forms/:id/export-excel (Export Laporan Submission ke Excel)
+// -------------------------------------------------------------
+router.get('/:id/export-excel', authMiddleware, async (req, res) => {
+  try {
+    const formId = req.params.id;
+    const form = await FormRepository.findById(formId);
+    if (!form) {
+      return res.status(404).json({ success: false, message: 'Form tidak ditemukan' });
+    }
+
+    const submissions = await SubmissionRepository.findByFormId(formId);
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Laporan Submission');
+
+    worksheet.columns = [
+      { header: 'No', key: 'no', width: 5 },
+      { header: 'Tanggal Submit', key: 'created_at', width: 20 },
+      { header: 'Nama Pengisi', key: 'user_name', width: 25 },
+      { header: 'Email', key: 'user_email', width: 25 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'IP Address', key: 'ip_address', width: 15 }
+    ];
+
+    submissions.forEach((sub, index) => {
+      worksheet.addRow({
+        no: index + 1,
+        created_at: sub.created_at,
+        user_name: sub.user_name || 'Guest / Publik',
+        user_email: sub.user_email || '-',
+        status: sub.status,
+        ip_address: sub.ip_address || '-'
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=Laporan-Submission-${formId}.xlsx`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error export excel:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // -------------------------------------------------------------
 // 1. POST /api/forms (Buat Template Form Baru)
 // -------------------------------------------------------------
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, description, slug, structure, status, is_public } = req.body
+    const { title, description, slug, structure, status, is_public, allow_submission } = req.body
 
     if (!title) {
       return res.status(400).json({ success: false, message: 'Judul form wajib diisi' })
     }
 
-    // Ambil user_id SECARA AMAN dari token yang sudah diverifikasi oleh middleware
     const userId = req.user?.id || req.user?.userId || null
 
     if (!userId) {
@@ -106,7 +148,8 @@ router.post('/', authMiddleware, async (req, res) => {
       structure: structure || [],
       status: status || 'published',
       is_public: is_public ?? true,
-      user_id: userId // <-- Menggunakan user_id yang aman dari token
+      allow_submission: allow_submission ?? true,
+      user_id: userId
     })
 
     return res.status(201).json({
@@ -121,7 +164,7 @@ router.post('/', authMiddleware, async (req, res) => {
 })
 
 // -------------------------------------------------------------
-// 2. GET /api/forms/:id (Ambil Detail Form)
+// 2. GET /api/forms/:id (Ambil Detail Form - Blokir jika allow_submission false)
 // -------------------------------------------------------------
 router.get('/:id', async (req, res) => {
   try {
@@ -130,6 +173,14 @@ router.get('/:id', async (req, res) => {
 
     if (!form) {
       return res.status(404).json({ success: false, message: 'Form tidak ditemukan' })
+    }
+
+    // Blokir akses GET detail form jika allow_submission bernilai false
+    if (form.allow_submission === false) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Maaf, formulir ini sudah ditutup dan tidak menerima tanggapan baru.' 
+      })
     }
 
     return res.json({
@@ -143,30 +194,56 @@ router.get('/:id', async (req, res) => {
 })
 
 // -------------------------------------------------------------
-// 3. POST /api/forms/:id/submit (Submit Jawaban Form + Upload File)
+// 3. POST /api/forms/:id/submit (Submit Jawaban Form + Validasi Required & Allow Submission)
 // -------------------------------------------------------------
-// Menggunakan authMiddleware (opsional: jika form harus diisi oleh user login, pertahankan authMiddleware. 
-// Jika form bisa diisi publik/guest, hapus authMiddleware dan tangani req.user?.id sebagai null)
 router.post('/:id/submit', authMiddleware, upload.any(), async (req, res) => {
   try {
     const formId = req.params.id
 
-    // 1. Cek keberadaan master form
     const formMaster = await FormRepository.findById(formId)
     if (!formMaster) {
       return res.status(404).json({ success: false, message: 'Form tidak ditemukan' })
     }
+    
+    if (formMaster.allow_submission === false) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Maaf, formulir ini sudah ditutup dan tidak menerima tanggapan baru.' 
+      })
+    }
 
-    // Ambil user_id aman dari token jika wajib login, atau biarkan null jika publik
+    const structure = formMaster.structure || []
+    const responses = { ...req.body }
+    const uploadedFiles = req.files || []
+
+    for (const field of structure) {
+      if (field.required) {
+        if (field.type === 'file') {
+          const hasFile = uploadedFiles.some(f => f.fieldname === field.id)
+          if (!hasFile) {
+            return res.status(400).json({ 
+              success: false, 
+              message: `Validasi gagal: Lampiran untuk "${field.label}" wajib diisi.` 
+            })
+          }
+        } else {
+          const val = responses[field.id]
+          if (val === undefined || val === null || val.toString().trim() === '') {
+            return res.status(400).json({ 
+              success: false, 
+              message: `Validasi gagal: Kolom "${field.label}" wajib diisi.` 
+            })
+          }
+        }
+      }
+    }
+
     const userId = req.user?.id || req.user?.userId || null
-
     const submissionId = crypto.randomUUID()
-    const responses = { ...req.body } 
     const attachments = []
 
-    // 2. Olah file yang ter-upload (jika ada)
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
+    if (uploadedFiles.length > 0) {
+      for (const file of uploadedFiles) {
         const fieldName = file.fieldname
         const publicPath = `/uploads/forms/${formId}/${file.filename}`
 
@@ -184,11 +261,9 @@ router.post('/:id/submit', authMiddleware, upload.any(), async (req, res) => {
       }
     }
 
-    // 3. Ambil Meta Client
     const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1'
     const userAgent = req.headers['user-agent'] || ''
 
-    // 4. Simpan ke database via Repository (Transaction)
     const result = await SubmissionRepository.createSubmissionWithAttachments({
       submission: {
         id: submissionId,
@@ -196,7 +271,7 @@ router.post('/:id/submit', authMiddleware, upload.any(), async (req, res) => {
         responses: responses,
         ip_address: ipAddress,
         user_agent: userAgent,
-        user_id: userId // <-- Aman dari token
+        user_id: userId
       },
       attachments: attachments
     })
@@ -213,33 +288,26 @@ router.post('/:id/submit', authMiddleware, upload.any(), async (req, res) => {
 })
 
 // -------------------------------------------------------------
-// 4. PUT /api/forms/:id (Update Master Form)
+// 4. PUT /api/forms/:id (Update Master Form termasuk allow_submission)
 // -------------------------------------------------------------
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params
-    const { title, description, slug, structure, status, is_public } = req.body
+    const { title, description, slug, structure, status, is_public, allow_submission } = req.body
 
-    // Cek apakah form ada terlebih dahulu
     const existingForm = await FormRepository.findById(id)
     if (!existingForm) {
       return res.status(404).json({ success: false, message: 'Form tidak ditemukan' })
     }
 
-    // Opsional: Validasi apakah user yang mengedit adalah pemilik form (jika tabel form menyimpan created_by / user_id)
-    // const userId = req.user?.id
-    // if (existingForm.user_id !== userId) {
-    //   return res.status(403).json({ success: false, message: 'Anda tidak memiliki hak untuk mengubah form ini' })
-    // }
-
-    // Jalankan fungsi update dari FormRepository
     const updatedForm = await FormRepository.update(id, {
       title,
       description,
       slug,
       structure,
       status,
-      is_public
+      is_public,
+      allow_submission
     })
 
     return res.json({
@@ -260,13 +328,11 @@ router.get('/:id/submissions', authMiddleware, async (req, res) => {
   try {
     const formId = req.params.id
 
-    // Cek keberadaan form master
     const form = await FormRepository.findById(formId)
     if (!form) {
       return res.status(404).json({ success: false, message: 'Form tidak ditemukan' })
     }
 
-    // Ambil daftar submission menggunakan method repository Anda
     const submissions = await SubmissionRepository.findByFormId(formId)
 
     return res.json({

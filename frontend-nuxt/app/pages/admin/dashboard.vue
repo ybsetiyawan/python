@@ -4,12 +4,11 @@
     <!-- TOP CLEAN HEADER -->
     <div class="dashboard-header slide-up">
       <div class="header-content">
-        <div class="system-badge">
-          <v-icon size="13" class="mr-1.5" color="indigo-darken-2">mdi-view-dashboard-outline</v-icon>
-          EDP Portal Surabaya
-        </div>
-        <h1>Workspace Dashboard</h1>
-        <p>Kelola formulir cabang, repositori file cloud, dan analitik data operasional dalam satu kendali terpusat.</p>
+        <h1>EDPSBY Workspace</h1>
+        <p class="welcome-text">
+          Selamat datang di <strong>EDPSBY Workspace</strong>, ruang kerja internal PT Indomarco Adi Prima Cabang Surabaya. 
+          Pusat kendali operasional terpadu untuk mengelola formulir cabang, repositori berkas, dan analitik data harian secara efisien.
+        </p>
       </div>
 
       <!-- METRICS COUNTER CARD -->
@@ -47,13 +46,16 @@
         @click="handleMenuClick(menu.path, menu.is_active ?? true)"
       >
         <div class="card-top-row">
+          <!-- Dinamis mengambil kelas warna background ikon dari database -->
           <div class="app-icon-wrap" :class="menu.icon_bg || 'indigo-bg'">
             <v-icon color="white" size="24">{{ menu.icon ? menu.icon.replace(':', '-') : 'mdi-folder-outline' }}</v-icon>
           </div>
-          <span class="status-chip" :class="menu.chip_color || 'indigo'">{{ menu.badge_text || 'Modul Utama' }}</span>
+          <!-- Dinamis teks dan warna chip diselaraskan dengan tema warna/icon_bg -->
+          <span class="status-chip" :class="getChipClass(menu.icon_bg)">{{ menu.badge_text || 'Modul Utama' }}</span>
         </div>
         <div class="card-main">
           <h3>{{ menu.name }}</h3>
+          <!-- Dinamis deskripsi dari database -->
           <p>{{ menu.description || 'Kelola operasional modul terkait dengan sistem terpusat.' }}</p>
         </div>
         <div class="card-bottom-row">
@@ -115,24 +117,24 @@ const totalFiles = ref(0)
 const totalSheets = ref(0)
 const loading = ref(true)
 
-// State untuk menyimpan daftar SEMUA menu dari database
 const allMenus = ref([])
-// State untuk menyimpan daftar path menu yang diizinkan untuk user ini
 const allowedMenuPaths = ref([])
 
-// State Modal Notifikasi Akses / Pengembangan
 const dialog = reactive({
   show: false,
-  type: '', // 'auth' atau 'dev'
+  type: '',
   title: '',
   message: ''
 })
 
-/**
- * Fungsi Pengendali Klik Menu & Validasi Otorisasi Berdasarkan Menu API Backend
- */
+// Fungsi untuk mencocokkan kelas chip agar warnanya senada dengan icon_bg
+const getChipClass = (iconBg) => {
+  if (!iconBg) return 'chip-indigo'
+  const prefix = iconBg.replace('-bg', '')
+  return `chip-${prefix}`
+}
+
 const handleMenuClick = (path, isFeatureExists = true) => {
-  // 1. Cek Apakah Fitur Sudah Ada / Dalam Pengembangan
   if (!isFeatureExists) {
     dialog.type = 'dev'
     dialog.title = 'Fitur Segera Hadir'
@@ -141,7 +143,6 @@ const handleMenuClick = (path, isFeatureExists = true) => {
     return
   }
 
-  // 2. Pengecekan Hak Akses Berdasarkan Path Menu dari Backend
   const isAuthorized = allowedMenuPaths.value.some(allowedPath => path.startsWith(allowedPath))
 
   if (allowedMenuPaths.value.length > 0 && !isAuthorized) {
@@ -152,20 +153,17 @@ const handleMenuClick = (path, isFeatureExists = true) => {
     return
   }
 
-  // 3. Jika lolos otorisasi, arahkan ke halaman tujuan
   router.push(path)
 }
 
 onMounted(async () => {
   try {
-    // 1. Ambil daftar menu yang diizinkan khusus user yang sedang login
     const userMenuRes = await $api("/auth/menus", { method: "GET" }).catch(() => null)
     const userMenuList = userMenuRes?.data || userMenuRes
     if (Array.isArray(userMenuList)) {
       allowedMenuPaths.value = userMenuList.map(menu => menu.path)
     }
 
-    // 2. Ambil SEMUA daftar menu untuk dirender di Grid Dashboard Workspace
     const allMenuRes = await $api("/auth/menus/all", { method: "GET" }).catch(() => null)
     const allMenuList = allMenuRes?.data || allMenuRes
     if (Array.isArray(allMenuList)) {
@@ -175,13 +173,12 @@ onMounted(async () => {
     console.error("Gagal memuat data menu:", err)
   }
 
-  // 3. Ambil data statistik dashboard workspace
   try {
     const res = await $api("/workspace/dashboard", { method: "GET" }).catch(() => null)
     if (res) {
-      totalForms.value = res.totalForms ?? 5
-      totalFiles.value = res.totalFiles ?? 48
-      totalSheets.value = res.totalSheets ?? 2
+      totalForms.value = res.totalForms ?? 0
+      totalFiles.value = res.totalFiles ?? 0
+      totalSheets.value = res.totalSheets ?? 0
     }
   } catch (err) {
     console.error("Dashboard workspace error:", err)
@@ -202,7 +199,6 @@ onMounted(async () => {
   min-height: 100vh;
 }
 
-/* HEADER SECTION */
 .dashboard-header {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -216,9 +212,7 @@ onMounted(async () => {
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.02);
 }
 
-.header-content {
-  flex: 1;
-}
+.header-content { flex: 1; }
 
 .system-badge {
   background: #eef2ff;
@@ -238,18 +232,17 @@ onMounted(async () => {
   font-size: 26px;
   font-weight: 800;
   color: #0f172a;
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
   letter-spacing: -0.5px;
 }
 
-.header-content p {
-  font-size: 13px;
-  color: #64748b;
+.welcome-text {
+  font-size: 13.5px;
+  color: #475569;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-/* METRICS WRAPPER */
 .metrics-wrapper {
   background: #f8fafc;
   border: 1px solid #f1f5f9;
@@ -260,9 +253,7 @@ onMounted(async () => {
   gap: 24px;
 }
 
-.metric-box {
-  text-align: center;
-}
+.metric-box { text-align: center; }
 
 .metric-value {
   font-size: 22px;
@@ -288,10 +279,7 @@ onMounted(async () => {
   background: #e2e8f0;
 }
 
-/* SECTION TITLE */
-.section-title {
-  margin-bottom: 20px;
-}
+.section-title { margin-bottom: 20px; }
 
 .section-title h3 {
   font-size: 17px;
@@ -305,7 +293,6 @@ onMounted(async () => {
   color: #64748b;
 }
 
-/* MODULES GRID */
 .modules-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
@@ -349,9 +336,17 @@ onMounted(async () => {
   box-shadow: 0 6px 12px -3px rgba(0, 0, 0, 0.08);
 }
 
+/* Gradasi Warna Ikon */
 .indigo-bg { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
 .blue-bg { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+.cyan-bg { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
 .emerald-bg { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.teal-bg { background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); }
+.amber-bg { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.orange-bg { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
+.purple-bg { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+.pink-bg { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
+.rose-bg { background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); }
 
 .status-chip {
   font-size: 11px;
@@ -360,9 +355,18 @@ onMounted(async () => {
   border-radius: 8px;
   letter-spacing: 0.3px;
 }
-.status-chip.indigo { background: #eef2ff; color: #4f46e5; }
-.status-chip.blue { background: #eff6ff; color: #2563eb; }
-.status-chip.emerald { background: #ecfdf5; color: #059669; }
+
+/* Tema Warna Chip / Badge yang Selaras dengan Latar Ikon */
+.chip-indigo { background: #eef2ff; color: #4f46e5; }
+.chip-blue { background: #eff6ff; color: #2563eb; }
+.chip-cyan { background: #ecfeff; color: #0891b2; }
+.chip-emerald { background: #ecfdf5; color: #059669; }
+.chip-teal { background: #f0fdf4; color: #0d9488; }
+.chip-amber { background: #fffbeb; color: #d97706; }
+.chip-orange { background: #fff7ed; color: #ea580c; }
+.chip-purple { background: #f5f3ff; color: #7c3aed; }
+.chip-pink { background: #fdf2f8; color: #db2777; }
+.chip-rose { background: #fff1f2; color: #e11d48; }
 
 .card-main h3 {
   font-size: 18px;
@@ -394,19 +398,10 @@ onMounted(async () => {
   transition: color 0.2s;
 }
 
-.app-card:hover .action-label {
-  color: #3730a3;
-}
+.app-card:hover .action-label { color: #3730a3; }
+.nav-arrow { transition: transform 0.2s ease; }
+.app-card:hover .nav-arrow { transform: translateX(4px); }
 
-.nav-arrow {
-  transition: transform 0.2s ease;
-}
-
-.app-card:hover .nav-arrow {
-  transform: translateX(4px);
-}
-
-/* FOOTER */
 .dashboard-footer {
   text-align: center;
   font-size: 12px;
@@ -419,14 +414,9 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.dot-separator {
-  font-size: 16px;
-  line-height: 0;
-}
-
+.dot-separator { font-size: 16px; line-height: 0; }
 .clickable { cursor: pointer; }
 
-/* ANIMATIONS */
 .slide-up {
   opacity: 0;
   transform: translateY(12px);

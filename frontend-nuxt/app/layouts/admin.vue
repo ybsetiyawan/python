@@ -78,14 +78,19 @@
       </template>
     </v-navigation-drawer>
 
-    <!-- APP BAR -->
-    <v-app-bar elevation="0" class="border-b-sm bg-white px-4 appbar-clean" height="70">
-      <v-app-bar-nav-icon @click="drawer = !drawer" class="d-md-none text-slate-700" />
+    <!-- APP BAR: MODERN BREADCRUMB STYLE -->
+    <v-app-bar elevation="0" class="border-b-sm bg-white px-6 appbar-clean" height="70">
+      <v-app-bar-nav-icon @click="drawer = !drawer" class="d-md-none text-slate-700 mr-2" />
 
-      <!-- Judul Appbar otomatis mengikuti menu aktif atau default -->
-      <v-app-bar-title class="font-weight-bold text-slate-800 ml-2 text-subtitle-1">
-        {{ currentMenuTitle }}
-      </v-app-bar-title>
+      <!-- Breadcrumb / Penunjuk Posisi Halaman Aktif -->
+      <div class="d-flex align-center breadcrumb-container">
+        <span class="breadcrumb-root">EDPSBY Workspace</span>
+        <v-icon size="14" class="text-slate-400 mx-2">mdi-chevron-right</v-icon>
+        <div class="breadcrumb-current">
+          <v-icon size="14" class="mr-2 text-indigo-darken-2">mdi-checkbox-blank-circle</v-icon>
+          <span>{{ currentMenuTitle }}</span>
+        </div>
+      </div>
 
       <v-spacer />
 
@@ -116,7 +121,6 @@
       </div>
     </v-app-bar>
 
-    <!-- MAIN CONTENT CONTAINER -->
     <!-- MAIN CONTENT CONTAINER -->
     <v-main class="main-background">
       <v-container fluid class="pa-6">
@@ -206,8 +210,6 @@ watch(
   (errorVal) => {
     if (errorVal === "unauthorized") {
       notify("Akses ditolak! Anda tidak memiliki izin untuk membuka halaman tersebut.", "error");
-      
-      // Bersihkan query parameter dari URL agar bersih kembali
       router.replace({ query: {} });
     }
   },
@@ -225,13 +227,11 @@ function formatIcon(iconStr: string) {
   return iconStr.replace(':', '-');
 }
 
-// Menyesuaikan judul Appbar secara otomatis berdasarkan path menu yang sedang dibuka
 const currentMenuTitle = computed(() => {
   const activeMenu = menus.value.find(m => m.path === route.path);
   return activeMenu ? activeMenu.name : "Dashboard Panel";
 });
 
-// Fungsi mengambil data menu sidebar dari backend
 const fetchSidebarMenus = async () => {
   try {
     const { $api } = useNuxtApp();
@@ -248,7 +248,6 @@ const fetchSidebarMenus = async () => {
   }
 };
 
-// Listener event kustom agar sidebar otomatis update ketika ada perubahan menu / hak akses
 const handleMenuUpdate = () => {
   fetchSidebarMenus();
 };
@@ -265,8 +264,6 @@ onMounted(() => {
   }
 
   fetchSidebarMenus();
-
-  // Daftarkan listener event dari halaman manajemen menu
   window.addEventListener("menu-access-updated", handleMenuUpdate);
 });
 
@@ -372,6 +369,28 @@ async function exportExcel() {
 .logout-trigger:hover {
   opacity: 0.8;
 }
+
+/* Style Breadcrumb Header di Top Bar */
+.breadcrumb-container {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+.breadcrumb-root {
+  color: #64748b;
+  font-weight: 500;
+}
+.breadcrumb-current {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f1f5f9;
+  color: #0f172a;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
 :deep(.v-navigation-drawer__content::-webkit-scrollbar) {
   width: 4px;
 }

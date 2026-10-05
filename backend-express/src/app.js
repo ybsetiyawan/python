@@ -10,6 +10,8 @@ const ocrRoute = require("./routes/ocr");
 const authRoute = require("./routes/auth");
 const userRoutes = require('./routes/userRoutes');
 const menuRoutes = require('./routes/menuRoutes');
+const workspaceRoutes = require('./routes/workspaceRoutes')
+const stockpointRoutes = require('./routes/stockpointRoutes')
 
 
 app.set("trust proxy", true);
@@ -37,6 +39,9 @@ app.use("/api/auth", authRoute);
 app.use("/api/forms", formRoutes);
 app.use('/api/users', userRoutes);
 app.use("/api/menus", menuRoutes);
+app.use('/api/workspace', workspaceRoutes)
+app.use('/api/stock-points', stockpointRoutes)
+
 
 app.get("/", (req, res) => {
   res.send("Express Server Running 🚀");

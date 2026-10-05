@@ -1,13 +1,11 @@
 const pool = require("../../../src/config/db");
 
-
-
 const FormRepository = {
   // 1. Create Master Form
   async create(data) {
     const sql = `
-      INSERT INTO forms (id, title, description, slug, structure, status, is_public, user_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO forms (id, title, description, slug, structure, status, is_public, user_id, allow_submission)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `
     const values = [
@@ -19,6 +17,7 @@ const FormRepository = {
       data.status || 'published',
       data.is_public ?? true,
       data.user_id || null,
+      data.allow_submission ?? true, // Default true saat form dibuat
     ]
 
     const result = await pool.query(sql, values)
@@ -32,14 +31,14 @@ const FormRepository = {
     return result.rows[0] || null
   },
 
-  // 3. Get Form By Slug
+  // 3. Get Form By Slug (Bisa ditambahkan filter allow_submission jika ingin langsung memblokir form yang ditutup dari publik)
   async findBySlug(slug) {
     const sql = `SELECT * FROM forms WHERE slug = $1 AND status = 'published' LIMIT 1`
     const result = await pool.query(sql, [slug])
     return result.rows[0] || null
   },
 
-  // 4. Update Form
+  // 4. Update Form (Termasuk allow_submission)
   async update(id, data) {
     const sql = `
       UPDATE forms
@@ -49,6 +48,7 @@ const FormRepository = {
           structure = COALESCE($5, structure),
           status = COALESCE($6, status),
           is_public = COALESCE($7, is_public),
+          allow_submission = COALESCE($8, allow_submission),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING *
@@ -61,6 +61,7 @@ const FormRepository = {
       data.structure ? JSON.stringify(data.structure) : null,
       data.status,
       data.is_public,
+      data.allow_submission, // Nilai boolean allow_submission baru
     ]
 
     const result = await pool.query(sql, values)

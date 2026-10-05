@@ -1,6 +1,5 @@
 const pool = require("../../../src/config/db");
 
-
 const SubmissionRepository = {
   // Create Submission beserta File Attachments dalam satu transaksi
   async createSubmissionWithAttachments(payload) {
@@ -9,7 +8,6 @@ const SubmissionRepository = {
     try {
       await client.query('BEGIN')
 
-      // 1. Insert ke form_submissions
       const insertSubmissionSql = `
         INSERT INTO form_submissions (id, form_id, responses, status, user_id, ip_address, user_agent)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -28,7 +26,6 @@ const SubmissionRepository = {
       const subRes = await client.query(insertSubmissionSql, submissionValues)
       const newSubmission = subRes.rows[0]
 
-      // 2. Insert batch ke form_attachments (jika ada file)
       if (Array.isArray(payload.attachments) && payload.attachments.length > 0) {
         const insertAttachmentSql = `
           INSERT INTO form_attachments (
@@ -62,20 +59,44 @@ const SubmissionRepository = {
     }
   },
 
-  // Mendapatkan riwayat jawaban berdasarkan Form ID
+
+  // Mendapatkan riwayat jawaban beserta data user dan attachments
   async findByFormId(formId) {
     const sql = `
-      SELECT * FROM form_submissions 
-      WHERE form_id = $1 
-      ORDER BY created_at DESC
+      SELECT 
+        fs.*,
+        u.name AS user_name,
+        u.email AS user_email
+      FROM form_submissions fs
+      LEFT JOIN users u ON fs.user_id = u.id
+      WHERE fs.form_id = $1 
+      ORDER BY fs.created_at DESC
     `
     const result = await pool.query(sql, [formId])
-    return result.rows
+    const submissions = result.rows
+
+    // Ambil lampiran file untuk setiap submission agar tabel bisa mendeteksi multi-foto
+    for (const sub of submissions) {
+      const attSql = `SELECT * FROM form_attachments WHERE submission_id = $1`
+      const attRes = await pool.query(attSql, [sub.id])
+      sub.attachments = attRes.rows
+    }
+
+    return submissions
   },
 
-  // Mendapatkan detail submission beserta daftar lampiran filenya
+  // Mendapatkan detail submission beserta data user dan daftar lampiran filenya
   async findDetailById(submissionId) {
-    const subSql = `SELECT * FROM form_submissions WHERE id = $1 LIMIT 1`
+    const subSql = `
+      SELECT 
+        fs.*,
+        u.name AS user_name,
+        u.email AS user_email
+      FROM form_submissions fs
+      LEFT JOIN users u ON fs.user_id = u.id
+      WHERE fs.id = $1 
+      LIMIT 1
+    `
     const attSql = `SELECT * FROM form_attachments WHERE submission_id = $1`
 
     const subRes = await pool.query(subSql, [submissionId])

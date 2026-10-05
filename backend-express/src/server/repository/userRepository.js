@@ -6,6 +6,7 @@ class UserRepository {
     const query = `
       SELECT id, name, email, created_at 
       FROM users 
+      WHERE is_deleted = false
       ORDER BY name ASC
     `;
     const result = await pool.query(query);
@@ -17,18 +18,18 @@ class UserRepository {
     const query = `
       SELECT id, name, email, created_at 
       FROM users 
-      WHERE id = $1
+      WHERE id = $1 AND is_deleted = false
     `;
     const result = await pool.query(query, [userId]);
     return result.rows[0];
   }
 
-  // Ambil user beserta passwordnya (biasanya untuk keperluan autentikasi/login)
-  static async findByEmail(email) {
-    const query = `SELECT * FROM users WHERE email = $1`;
-    const result = await pool.query(query, [email]);
-    return result.rows[0];
-  }
+ // Contoh di UserRepository.js
+static async findByEmail(email) {
+  const query = `SELECT * FROM users WHERE email = $1 AND is_deleted = false`;
+  const result = await pool.query(query, [email]);
+  return result.rows[0];
+}
 
   // Tambah user baru
   static async create(userData) {
@@ -78,27 +79,9 @@ class UserRepository {
 
   // Hapus user beserta relasinya di user_menus (menggunakan transaction)
   static async delete(userId) {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      // 1. Hapus relasi hak akses menu user terlebih dahulu
-      await client.query('DELETE FROM user_menus WHERE user_id = $1', [userId]);
-
-      // 2. Hapus data user utama
-      const result = await client.query(
-        'DELETE FROM users WHERE id = $1 RETURNING id, name, email', 
-        [userId]
-      );
-
-      await client.query('COMMIT');
-      return result.rows[0];
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    const query = `UPDATE users SET is_deleted = true WHERE id = $1 RETURNING *`;
+    const result = await pool.query(query, [userId]);
+    return result.rows[0];
   }
 }
 

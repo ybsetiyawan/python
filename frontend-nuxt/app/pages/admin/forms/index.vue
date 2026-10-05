@@ -46,15 +46,23 @@
         <div class="top-color-bar"></div>
         <div class="corner-fold"></div>
 
-        <!-- Top Meta (Badge Field & Tanggal) -->
+        <!-- Top Meta (Badge Field, Status Buka/Tutup, & Tanggal) -->
         <div class="paper-top-meta">
-          <span class="field-badge">
-            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
-              <path d="M4 4.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5z"/>
-            </svg>
-            {{ parseStructureLength(form.structure) }} Field
-          </span>
+          <div class="meta-badges">
+            <span class="field-badge">
+              <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                <path d="M4 4.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5z"/>
+              </svg>
+              {{ parseStructureLength(form.structure) }} Field
+            </span>
+
+            <!-- Penanda Status Buka / Tutup -->
+            <span :class="['status-badge', form.allow_submission !== false ? 'status-open' : 'status-closed']">
+              {{ form.allow_submission !== false ? '🟢 Buka' : '🔴 Ditutup' }}
+            </span>
+          </div>
+
           <span class="paper-date">{{ formatDate(form.created_at || form.createdAt) }}</span>
         </div>
 
@@ -66,6 +74,15 @@
 
         <!-- Tombol Aksi Berwarna Kontras -->
         <div class="paper-actions">
+          <!-- Tombol Toggle Open / Close Form -->
+          <button 
+            @click="toggleFormStatus(form)" 
+            :class="['btn-action', form.allow_submission !== false ? 'btn-close-form' : 'btn-open-form']"
+            :title="form.allow_submission !== false ? 'Tutup form agar tidak bisa diisi' : 'Buka kembali form'"
+          >
+            {{ form.allow_submission !== false ? '🔒 Tutup' : '🔓 Buka' }}
+          </button>
+
           <button @click="copyPublicLink(form.id)" class="btn-action btn-salin" title="Salin Tautan Form">
             <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
               <path fill-rule="evenodd" d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/>
@@ -118,6 +135,7 @@ interface FormItem {
   title: string
   description?: string
   structure?: any
+  allow_submission?: boolean
   created_at?: string
   createdAt?: string
 }
@@ -174,6 +192,24 @@ const copyPublicLink = (id: string | number) => {
   const url = `${window.location.origin}/admin/forms/${id}`
   navigator.clipboard.writeText(url)
   showToast('Link formulir berhasil disalin!')
+}
+
+const toggleFormStatus = async (form: FormItem) => {
+  const newStatus = !(form.allow_submission !== false)
+  try {
+    const { $api } = useNuxtApp()
+    await $api(`/forms/${form.id}`, {
+      method: 'PUT',
+      body: {
+        allow_submission: newStatus
+      }
+    })
+    form.allow_submission = newStatus
+    showToast(newStatus ? 'Formulir berhasil dibuka!' : 'Formulir berhasil ditutup!')
+  } catch (err: any) {
+    console.error('Gagal mengubah status form:', err)
+    showToast('Gagal mengubah status formulir.')
+  }
 }
 
 const formatDate = (dateStr?: string) => {
@@ -330,58 +366,89 @@ const formatDate = (dateStr?: string) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-right: 44px;
+  margin-bottom: 14px;
+  padding-right: 40px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meta-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .field-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
+  gap: 4px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 4px 12px;
+  padding: 3px 8px;
   border-radius: 20px;
 }
 
+.status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.status-open {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-closed {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
 .paper-date {
-  font-size: 12px;
+  font-size: 11px;
   color: #94a3b8;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .paper-content {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
+/* Perbaikan Tampilan Judul Agar Lebih Rapi dan Mendukung Teks Panjang */
 .paper-title {
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
   color: #0f172a;
-  margin: 0 0 8px 0;
-  line-height: 1.35;
+  margin: 0 0 6px 0;
+  line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2; /* Batasi maksimal 2 baris agar tetap rapi */
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .paper-desc {
-  font-size: 13px;
+  font-size: 12px;
   color: #64748b;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .paper-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding-top: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding-top: 14px;
   border-top: 1px dashed #e2e8f0;
 }
 
@@ -389,10 +456,10 @@ const formatDate = (dateStr?: string) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 9px 4px;
+  gap: 4px;
+  padding: 8px 2px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
@@ -401,6 +468,31 @@ const formatDate = (dateStr?: string) => {
 
 .btn-action:hover {
   transform: translateY(-3px);
+}
+
+/* Tombol Toggle Buka / Tutup */
+.btn-close-form {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.btn-close-form:hover {
+  background-color: #dc2626;
+  color: #ffffff;
+  border-color: #b91c1c;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+.btn-open-form {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.btn-open-form:hover {
+  background-color: #059669;
+  color: #ffffff;
+  border-color: #047857;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
 }
 
 .btn-salin {
@@ -428,15 +520,15 @@ const formatDate = (dateStr?: string) => {
 }
 
 .btn-respons {
-  background-color: #d1fae5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
 }
 .btn-respons:hover {
-  background-color: #059669;
+  background-color: #334155;
   color: #ffffff;
-  border-color: #047857;
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+  border-color: #1e293b;
+  box-shadow: 0 4px 12px rgba(51, 65, 85, 0.35);
 }
 
 .loading-state, .empty-paper {

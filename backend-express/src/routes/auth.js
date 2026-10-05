@@ -166,9 +166,9 @@ GET ALL MENUS (For Dashboard Workspace / Admin)
 */
 router.get("/menus/all", authMiddleware, async (req, res) => {
   try {
-    // Query untuk mengambil seluruh daftar menu yang tersedia di sistem
     const query = `
-      SELECT * 
+      SELECT id, name, path, icon, sort_order, is_publish, 
+             description, icon_bg, badge_text, chip_color 
       FROM menus 
       WHERE is_publish = 'Y'
       ORDER BY sort_order ASC

@@ -8,7 +8,7 @@
 
     <!-- 2. State Error / Form Tidak Ditemukan -->
     <div v-else-if="error || !form" class="error-card">
-      <div class="error-icon">⚠️</div>
+      <div class="error-icon">⚠️️</div>
       <h2>Form Tidak Ditemukan</h2>
       <p>{{ error?.message || 'Formulir tidak tersedia atau telah dihapus.' }}</p>
     </div>
@@ -58,7 +58,6 @@
             v-model="formData[field.id]"
             :type="field.type"
             :placeholder="field.placeholder || `Masukkan ${field.label.toLowerCase()}...`"
-            :required="field.required"
             class="form-control"
           />
 
@@ -68,7 +67,6 @@
             :id="field.id"
             v-model="formData[field.id]"
             :placeholder="field.placeholder || `Masukkan ${field.label.toLowerCase()}...`"
-            :required="field.required"
             rows="4"
             class="form-control"
           ></textarea>
@@ -78,7 +76,6 @@
             v-else-if="field.type === 'select'"
             :id="field.id"
             v-model="formData[field.id]"
-            :required="field.required"
             class="form-control"
           >
             <option value="" disabled selected>-- Pilih opsi --</option>
@@ -103,7 +100,6 @@
                 :name="field.id"
                 :value="typeof opt === 'object' ? opt.value : opt"
                 v-model="formData[field.id]"
-                :required="field.required && !formData[field.id]"
               />
               <span>{{ typeof opt === 'object' ? opt.label : opt }}</span>
             </label>
@@ -149,9 +145,14 @@
                 </svg>
                 <p class="upload-text"><strong>Klik untuk memilih file</strong> atau tarik & lepas di sini</p>
                 <span class="upload-hint">
-                  {{ field.allowMultiple !== false ? 'Bisa memilih lebih dari 1 file' : 'Maksimal 1 file' }}
+                  Format: JPG, PNG, PDF (Maks. 5MB / file)
                 </span>
               </div>
+            </div>
+
+            <!-- Pesan Error Khusus File -->
+            <div v-if="fileErrorMessages[field.id]" class="file-error-text">
+              ⚠️ {{ fileErrorMessages[field.id] }}
             </div>
 
             <!-- List Preview File yang Dipilih -->
@@ -202,10 +203,8 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute, useNuxtApp } from '#imports'
 import { useAuth } from '~~/app/composables/useAuth'
 
-// Daftarkan metadata halaman agar menggunakan layout admin dan proteksi middleware jika ada
 definePageMeta({
   layout: 'admin',
-  middleware: ['auth-menu'] // Middleware untuk memeriksa autentikasi dan hak akses
 })
 
 const route = useRoute()
@@ -221,6 +220,7 @@ const error = ref(null)
 
 const formData = reactive({})
 const fileData = reactive({})
+const fileErrorMessages = reactive({})
 const fileInputRefs = ref({})
 const activeDragField = ref(null)
 
@@ -228,6 +228,20 @@ const isSubmitting = ref(false)
 const isSubmitted = ref(false)
 const submitMessage = ref('')
 const isSuccess = ref(false)
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
+const MAX_TOTAL_FILES = 5
+
+// Fungsi Helper Autentikasi
+const checkAuthAndRedirect = () => {
+  const token = getToken()
+  if (!token) {
+    router.push('/login')
+    return false
+  }
+  return true
+}
 
 const setFileRef = (el, fieldId) => {
   if (el) fileInputRefs.value[fieldId] = el
@@ -239,17 +253,11 @@ const triggerFileInput = (fieldId) => {
   }
 }
 
-// Fetch Master Structure Form dengan validasi Token Auth
 const fetchFormDetail = async () => {
-  const token = getToken()
-  if (!token) {
-    router.push('/login')
-    return
-  }
+  if (!checkAuthAndRedirect()) return
 
   try {
     pending.value = true
-    // Menggunakan plugin $api yang sudah otomatis membawa token dari header
     const res = await $api(`/forms/${formId}`)
     if (res.success) {
       form.value = res.data
@@ -266,7 +274,6 @@ const fetchFormDetail = async () => {
   }
 }
 
-// Init Form Data
 const initFormState = (structure) => {
   if (!Array.isArray(structure)) return
 
@@ -281,14 +288,31 @@ const initFormState = (structure) => {
   })
 }
 
-// Handling File Input & Multi Append
 const appendFiles = (fieldId, newFiles) => {
   if (!fileData[fieldId]) {
     fileData[fieldId] = []
   }
   
+  fileErrorMessages[fieldId] = ''
+  
   const filesArray = Array.from(newFiles)
+  
+  if (fileData[fieldId].length + filesArray.length > MAX_TOTAL_FILES) {
+    fileErrorMessages[fieldId] = `Maksimal total file yang diizinkan adalah ${MAX_TOTAL_FILES} file per lampiran.`
+    return
+  }
+
   filesArray.forEach((file) => {
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      fileErrorMessages[fieldId] = `File "${file.name}" ditolak. Format file yang diperbolehkan hanya JPG, PNG, atau PDF.`
+      return
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      fileErrorMessages[fieldId] = `File "${file.name}" terlalu besar. Ukuran maksimal per file adalah 5 MB.`
+      return
+    }
+
     const isDuplicate = fileData[fieldId].some(f => f.name === file.name && f.size === file.size)
     if (!isDuplicate) {
       fileData[fieldId].push(file)
@@ -313,6 +337,7 @@ const handleDrop = (event, fieldId) => {
 const removeFile = (fieldId, fileIndex) => {
   if (fileData[fieldId]) {
     fileData[fieldId].splice(fileIndex, 1)
+    fileErrorMessages[fieldId] = ''
   }
 }
 
@@ -324,16 +349,43 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
-// Submit Form Payload
+// Validasi Wajib Isi (Required Check) untuk Seluruh Field Termasuk File Lampiran
 const handleSubmit = async () => {
-  const token = getToken()
-  if (!token) {
-    router.push('/login')
-    return
+  if (!checkAuthAndRedirect()) return
+
+  submitMessage.value = ''
+
+  // 1. Cek Validasi Wajib Isi pada Setiap Field Struktur Form
+  if (form.value && form.value.structure) {
+    for (const field of form.value.structure) {
+      if (field.required) {
+        if (field.type === 'file') {
+          const files = fileData[field.id]
+          if (!files || !Array.isArray(files) || files.length === 0) {
+            submitMessage.value = `Pertanyaan "${field.label}" wajib melampirkan file.`
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            return
+          }
+        } else if (field.type === 'checkbox') {
+          const checkedVals = formData[field.id]
+          if (!checkedVals || !Array.isArray(checkedVals) || checkedVals.length === 0) {
+            submitMessage.value = `Pertanyaan "${field.label}" wajib dipilih minimal satu.`
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            return
+          }
+        } else {
+          const val = formData[field.id]
+          if (val === undefined || val === null || val.toString().trim() === '') {
+            submitMessage.value = `Kolom "${field.label}" wajib diisi.`
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            return
+          }
+        }
+      }
+    }
   }
 
   isSubmitting.value = true
-  submitMessage.value = ''
 
   try {
     const payload = new FormData()
@@ -370,6 +422,7 @@ const handleSubmit = async () => {
     }
     isSuccess.value = false
     submitMessage.value = err.data?.message || 'Terjadi kesalahan saat mengirim jawaban.'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   } finally {
     isSubmitting.value = false
   }
@@ -385,12 +438,9 @@ const resetFormForNewSubmit = () => {
 }
 
 onMounted(() => {
-  const token = getToken()
-  if (!token) {
-    router.push('/login')
-    return
+  if (checkAuthAndRedirect()) {
+    fetchFormDetail()
   }
-  fetchFormDetail()
 })
 </script>
 
@@ -539,6 +589,19 @@ onMounted(() => {
 .upload-hint {
   font-size: 12px;
   color: #94a3b8;
+}
+
+.file-error-text {
+  font-size: 13px;
+  color: #dc2626;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .file-preview-list {

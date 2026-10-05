@@ -147,8 +147,15 @@
           <div v-if="['select', 'radio', 'checkbox'].includes(field.type)" class="options-builder">
             <div class="options-header">
               <label class="form-label">Daftar Pilihan / Opsi <span class="required">*</span></label>
-              <button type="button" class="btn-small-add" @click="addOption(field)">+ Tambah Opsi</button>
+              <div class="options-header-actions">
+                <!-- Tombol Pintasan Ambil Data Stock Point -->
+                <button type="button" class="btn-small-master" @click="loadStockPointsIntoField(field)">
+                  🏢 Ambil dari Master Stock Point
+                </button>
+                <button type="button" class="btn-small-add" @click="addOption(field)">+ Tambah Opsi</button>
+              </div>
             </div>
+            
             <div v-for="(opt, optIdx) in field.options" :key="optIdx" class="option-row">
               <input 
                 v-model="opt.label" 
@@ -204,28 +211,29 @@
             👁️ Preview Form
           </a>
           <button @click="resetBuilder" class="btn-primary">
-  Close
-</button>
+            Close
+          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useNuxtApp } from '#imports'
 import { useAuth } from '~~/app/composables/useAuth'
 
 definePageMeta({
-  // layout: 'admin',
   middleware: ['auth-menu']
 })
 
 const router = useRouter()
-const { getToken } = useAuth() // Properti 'user' dihapus karena tidak ada di return type useAuth
+const { getToken } = useAuth()
 
 const formMeta = reactive({ title: '', description: '' })
 const fields = ref<any[]>([])
+const stockPoints = ref<any[]>([]) // Menyimpan master data stock point
 const isSaving = ref(false)
 const createdFormId = ref<string | null>(null)
 const copied = ref(false)
@@ -243,12 +251,24 @@ const toast = reactive({
   type: 'error' as 'error' | 'success' | 'info'
 })
 
+// Ambil master Stock Point dari API backend
+const fetchStockPoints = async () => {
+  try {
+    const { $api } = useNuxtApp()
+    const res: any = await $api('/stock-points')
+    stockPoints.value = res.data || res || []
+  } catch (err) {
+    console.error('Gagal memuat master stock points:', err)
+  }
+}
+
 onMounted(async () => {
   const token = getToken()
   if (!token) {
     router.push('/login')
     return
   }
+  await fetchStockPoints()
 })
 
 const showToast = (title: string, message: string, type: 'error' | 'success' | 'info' = 'error') => {
@@ -281,7 +301,6 @@ const addField = () => {
   })
 }
 
-// Perbaikan: Berikan tipe data explicit number pada index
 const removeField = (index: number) => {
   fields.value.splice(index, 1)
 }
@@ -319,6 +338,23 @@ const addOption = (field: any) => {
     value: `opsi_${idx}` 
   })
 }
+
+// Fungsi untuk memasukkan data master Stock Point langsung ke opsi field
+const loadStockPointsIntoField = (field: any) => {
+  if (stockPoints.value.length === 0) {
+    showToast('Data Kosong', 'Master data Stock Point belum tersedia atau gagal dimuat.', 'error')
+    return
+  }
+  
+  // Ubah format data stock point menjadi struktur opsi (label & value)
+  field.options = stockPoints.value.map((sp: any) => ({
+    label: `${sp.kode_spoint} - ${sp.nama_spoint} (${sp.nama_cab})`,
+    value: sp.kode_spoint
+  }))
+
+  showToast('Berhasil', 'Daftar pilihan berhasil dimuat dari Master Stock Point!', 'success')
+}
+
 const removeOption = (field: any, optIdx: number | string) => {
   if (field.options.length > 1) {
     field.options.splice(Number(optIdx), 1)
@@ -383,7 +419,6 @@ const saveForm = async () => {
       }
     }
 
-    // Sertakan user_id hasil decode di dalam body request
     const res: any = await $api('/forms', {
       method: 'POST',
       body: { 
@@ -437,7 +472,6 @@ const resetBuilder = () => {
   position: relative;
 }
 
-/* Toast Notification Styles */
 .toast-notification {
   position: fixed;
   top: 24px;
@@ -502,7 +536,6 @@ const resetBuilder = () => {
   background-color: #f3f4f6;
 }
 
-/* Toast Transitions */
 .toast-enter-active,
 .toast-leave-active {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -518,7 +551,6 @@ const resetBuilder = () => {
   transform: translateX(30px);
 }
 
-/* Shake Animation */
 .shake-anim {
   animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
@@ -530,7 +562,6 @@ const resetBuilder = () => {
   40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
-/* Base Styles */
 .builder-container {
   max-width: 760px;
   margin: 0 auto;
@@ -605,7 +636,7 @@ const resetBuilder = () => {
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: #373151;
   margin-bottom: 6px;
 }
 
@@ -805,6 +836,14 @@ input:checked + .slider:before {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.options-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .option-row {
@@ -830,12 +869,28 @@ input:checked + .slider:before {
   background-color: #4338ca;
 }
 
+.btn-small-master {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-small-master:hover {
+  background-color: #fde68a;
+}
+
 .btn-small-add {
   background-color: #e0e7ff;
   color: #4338ca;
   border: none;
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;

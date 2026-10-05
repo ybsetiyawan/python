@@ -1,10 +1,9 @@
 const { UserRepository } = require('../../repository/userRepository');
-
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 
 class UserController {
-  // Ambil semua user
+  // Ambil semua user (Hanya yang belum dihapus)
   static async getAllUsers(req, res) {
     try {
       const users = await UserRepository.findAll();
@@ -32,37 +31,47 @@ class UserController {
     }
   }
 
-  // Tambah User Baru
+  // Tambah User Baru (Mendukung data tunggal maupun banyak/bulk sekaligus)
   static async createUser(req, res) {
     try {
-      const { name, email, password } = req.body;
+      const users = Array.isArray(req.body) ? req.body : [req.body];
 
-      if (!name || !email || !password) {
-        return res.status(400).json({ success: false, error: "Nama, email, dan password wajib diisi" });
+      for (const user of users) {
+        if (!user.name || !user.email || !user.password) {
+          return res.status(400).json({ success: false, error: "Semua field wajib diisi (ada data tidak lengkap)" });
+        }
       }
 
-      // Cek apakah email sudah terdaftar
-      const existingUser = await UserRepository.findByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ success: false, error: "Email sudah digunakan oleh user lain" });
+      const results = [];
+
+      for (const user of users) {
+        const { name, email, password } = user;
+
+        // Cek apakah email sudah terdaftar (pada user yang aktif)
+        const existingUser = await UserRepository.findByEmail(email);
+        if (existingUser) {
+          return res.status(400).json({ success: false, error: `Email ${email} sudah digunakan oleh user lain` });
+        }
+
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        const newUser = {
+          id: uuidv4(),
+          name,
+          email,
+          hashedPassword
+        };
+
+        const created = await UserRepository.create(newUser);
+        results.push(created);
       }
 
-      // Hash password
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-      const newUser = {
-        id: uuidv4(),
-        name,
-        email,
-        hashedPassword
-      };
-
-      const created = await UserRepository.create(newUser);
       return res.status(201).json({
         success: true,
-        message: "User berhasil ditambahkan",
-        data: created
+        message: `Berhasil menambahkan ${results.length} user`,
+        count: results.length,
+        data: Array.isArray(req.body) ? results : results[0]
       });
     } catch (err) {
       console.error("Error createUser:", err);
@@ -81,7 +90,6 @@ class UserController {
         return res.status(404).json({ success: false, error: "User tidak ditemukan" });
       }
 
-      // Jika email diubah, pastikan email belum dipakai user lain
       if (email && email !== existingUser.email) {
         const emailCheck = await UserRepository.findByEmail(email);
         if (emailCheck) {
@@ -113,14 +121,14 @@ class UserController {
     }
   }
 
-  // Hapus User
+  // Hapus User (Soft Delete -> is_deleted = true)
   static async deleteUser(req, res) {
     try {
       const { id } = req.params;
 
       const existingUser = await UserRepository.findById(id);
       if (!existingUser) {
-        return res.status(404).json({ success: false, error: "User tidak ditemukan" });
+        return res.status(404).json({ success: false, error: "User tidak ditemukan atau sudah dihapus" });
       }
 
       await UserRepository.delete(id);

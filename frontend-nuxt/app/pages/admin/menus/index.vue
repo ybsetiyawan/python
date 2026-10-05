@@ -1,19 +1,15 @@
 <template>
-  <!-- SINGLE ROOT NODE UNTUK MENCEGAH ERROR TRANSITION VUE -->
   <div class="menu-management-page">
     
     <!-- TOP HEADER -->
     <div class="page-header slide-up">
       <div class="header-info">
-        <div class="system-badge">
-          <v-icon size="13" class="mr-1.5" color="indigo-darken-2">mdi-menu</v-icon>
-          EDP Portal Surabaya
-        </div>
+        
         <h1>Manajemen Menu Navigasi & Hak Akses</h1>
-        <p>Kelola daftar modul, jalur path, urutan tampil, ikon, status publikasi, serta hak akses user.</p>
+        <p>Kelola daftar modul, deskripsi kartu dashboard, badge text, palet warna serasi, urutan tampil, dan hak akses user.</p>
       </div>
       
-      <!-- Tombol Header Ikon / Compact -->
+      <!-- Tombol Header -->
       <div class="header-actions-group">
         <v-tooltip location="top">
           <template v-slot:activator="{ props }">
@@ -47,8 +43,8 @@
       </div>
     </div>
 
-    <!-- MAIN CARD TABLE CONTAINER -->
-    <v-card class="rounded-2xl border elevation-0 slide-up delay-1">
+    <!-- MAIN CARD TABLE CONTAINER DENGAN HORIZONTAL SCROLL -->
+    <v-card class="rounded-2xl border elevation-0 slide-up delay-1 table-card-wrapper">
       <v-data-table
         :headers="headers"
         :items="menus"
@@ -64,16 +60,14 @@
         <!-- Kolom Icon -->
         <template v-slot:item.icon="{ item }">
           <div class="d-flex align-center py-2">
-            <v-avatar color="indigo-lighten-5" rounded="lg" size="38" class="mr-3 flex-shrink-0">
-              <v-icon color="indigo-darken-2" size="22">
+            <v-avatar :class="item.icon_bg || 'indigo-bg'" rounded="lg" size="38" class="mr-3 flex-shrink-0 text-white shadow-sm">
+              <v-icon size="20">
                 {{ item.icon ? item.icon.replace(':', '-') : 'mdi-folder-outline' }}
               </v-icon>
             </v-avatar>
-            <div class="icon-text-wrap">
-              <span class="d-block text-body-2 font-weight-medium text-slate-800 text-truncate" style="max-width: 160px;">
-                {{ item.icon || '-' }}
-              </span>
-            </div>
+            <span class="text-body-2 font-weight-medium text-slate-800 text-truncate" style="max-width: 130px;">
+              {{ item.icon || '-' }}
+            </span>
           </div>
         </template>
 
@@ -87,6 +81,28 @@
           <code class="px-2 py-1 rounded bg-slate-100 text-indigo-darken-2 text-caption font-weight-medium">
             {{ item.path }}
           </code>
+        </template>
+
+        <!-- Kolom Deskripsi -->
+        <template v-slot:item.description="{ item }">
+          <span class="text-body-2 text-slate-600 text-truncate d-inline-block" style="max-width: 220px;">
+            {{ item.description || '-' }}
+          </span>
+        </template>
+
+        <!-- Kolom Badge Text -->
+        <template v-slot:item.badge_text="{ item }">
+          <span class="font-weight-bold text-slate-700 text-caption">{{ item.badge_text || 'Modul Utama' }}</span>
+        </template>
+
+        <!-- Kolom Tema / Warna Serasi -->
+        <template v-slot:item.theme="{ item }">
+          <div class="d-flex align-center" style="gap: 6px;">
+            <div class="color-swatch-indicator" :class="item.icon_bg || 'indigo-bg'"></div>
+            <v-chip size="x-small" class="font-weight-bold text-uppercase" :color="item.chip_color || 'indigo'" variant="tonal">
+              {{ item.chip_color || 'indigo' }}
+            </v-chip>
+          </div>
         </template>
 
         <!-- Kolom Status Publish -->
@@ -126,7 +142,7 @@
     </v-card>
 
     <!-- DIALOG FORM TAMBAH / EDIT -->
-    <v-dialog v-model="dialog.show" max-width="480" persistent>
+    <v-dialog v-model="dialog.show" max-width="600" persistent scrollable>
       <v-card class="rounded-2xl pa-5 elevation-4">
         <div class="d-flex justify-space-between align-center mb-4">
           <h3 class="text-subtitle-1 font-weight-bold text-slate-900">
@@ -140,12 +156,11 @@
             <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Nama Menu</label>
             <v-text-field
               v-model="form.name"
-              placeholder="Contoh: Manajemen Form"
+              placeholder="Contoh: E-Form"
               variant="outlined"
               density="comfortable"
               :rules="[(v: string) => !!v || 'Nama menu wajib diisi']"
               hide-details="auto"
-              class="rounded-lg"
             ></v-text-field>
           </div>
 
@@ -162,12 +177,40 @@
           </div>
 
           <div class="mb-3">
-            <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">
-              Icon MDI (Contoh: mdi:view-dashboard)
-            </label>
+            <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Deskripsi Kartu Dashboard</label>
+            <v-textarea
+              v-model="form.description"
+              placeholder="Jelaskan fungsi singkat modul ini..."
+              variant="outlined"
+              density="comfortable"
+              rows="2"
+              hide-details="auto"
+            ></v-textarea>
+          </div>
+
+          <!-- PILIHAN PALET WARNA (OTOMATIS MENYELARASKAN ICON BG & CHIP COLOR) -->
+          <div class="mb-4">
+            <label class="d-block text-caption font-weight-bold text-slate-700 mb-2">Pilih Tema Palet Warna (Ikon & Chip Selaras)</label>
+            <div class="color-palette-grid">
+              <div 
+                v-for="palette in palettes" 
+                :key="palette.label"
+                class="palette-item"
+                :class="{ 'active-palette': form.icon_bg === palette.icon_bg }"
+                @click="selectPalette(palette)"
+              >
+                <div class="palette-preview" :class="palette.icon_bg"></div>
+                <span class="palette-label">{{ palette.label }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KUSTOMISASI BADGE TEXT -->
+          <div class="mb-3">
+            <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Badge Text</label>
             <v-text-field
-              v-model="form.icon"
-              placeholder="mdi:view-dashboard"
+              v-model="form.badge_text"
+              placeholder="Contoh: Modul Utama / AI Tools / Laporan"
               variant="outlined"
               density="comfortable"
               hide-details="auto"
@@ -175,6 +218,16 @@
           </div>
 
           <div class="d-flex mb-3" style="gap: 12px;">
+            <div class="flex-grow-1">
+              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Icon MDI</label>
+              <v-text-field
+                v-model="form.icon"
+                placeholder="mdi:view-dashboard"
+                variant="outlined"
+                density="comfortable"
+                hide-details="auto"
+              ></v-text-field>
+            </div>
             <div class="flex-grow-1">
               <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Sort Order</label>
               <v-text-field
@@ -185,18 +238,19 @@
                 hide-details="auto"
               ></v-text-field>
             </div>
-            <div class="flex-grow-1">
-              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Status Publish</label>
-              <v-select
-                v-model="form.is_publish"
-                :items="[{ title: 'Published (Y)', value: 'Y' }, { title: 'Draft (N)', value: 'N' }]"
-                item-title="title"
-                item-value="value"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-              ></v-select>
-            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Status Publish</label>
+            <v-select
+              v-model="form.is_publish"
+              :items="[{ title: 'Published (Y)', value: 'Y' }, { title: 'Draft (N)', value: 'N' }]"
+              item-title="title"
+              item-value="value"
+              variant="outlined"
+              density="comfortable"
+              hide-details="auto"
+            ></v-select>
           </div>
 
           <div class="d-flex justify-end mt-5" style="gap: 8px;">
@@ -232,7 +286,6 @@
           <v-btn icon="mdi-close" variant="text" size="small" @click="accessDialog.show = false"></v-btn>
         </div>
 
-        <!-- Pilih User -->
         <div class="mb-3">
           <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Cari / Pilih User Karyawan</label>
           <v-autocomplete
@@ -255,7 +308,6 @@
           </v-autocomplete>
         </div>
 
-        <!-- Daftar Menu dengan Checkbox -->
         <div class="mb-4">
           <div class="d-flex justify-space-between align-center mb-2">
             <span class="text-caption font-weight-bold text-slate-700">Daftar Menu Navigasi</span>
@@ -267,14 +319,9 @@
           <div class="menu-access-container border rounded-xl pa-2 bg-slate-50" style="max-height: 240px; overflow-y: auto;">
             <div v-if="accessDialog.loadingMenus" class="text-center py-5 text-slate-500">
               <v-progress-circular indeterminate color="indigo-darken-2" size="22" width="3"></v-progress-circular>
-              <div class="mt-2 text-caption font-weight-medium">Memuat hak akses menu...</div>
             </div>
             <div v-else-if="!accessDialog.selectedUserId" class="text-center py-5 text-slate-400 text-caption">
-              <v-icon size="24" color="slate-300" class="mb-1">mdi-account-arrow-left-outline</v-icon>
-              <div>Silakan pilih user terlebih dahulu untuk mengatur hak akses.</div>
-            </div>
-            <div v-else-if="accessDialog.menuItems.length === 0" class="text-center py-5 text-slate-400 text-caption">
-              Belum ada data menu sistem yang tersedia.
+              Silakan pilih user terlebih dahulu untuk mengatur hak akses.
             </div>
             <div v-else class="d-flex flex-column" style="gap: 4px;">
               <div 
@@ -302,21 +349,10 @@
         </div>
 
         <div class="d-flex justify-end pt-2 border-top" style="gap: 8px;">
-          <v-btn
-            variant="text"
-            color="slate-600"
-            class="text-none font-weight-bold rounded-xl px-4"
-            @click="accessDialog.show = false"
-          >
+          <v-btn variant="text" color="slate-600" class="text-none font-weight-bold rounded-xl px-4" @click="accessDialog.show = false">
             Tutup
           </v-btn>
-          <v-btn
-            color="indigo-darken-2"
-            class="text-none font-weight-bold rounded-xl px-6 elevation-0"
-            :loading="accessDialog.saving"
-            :disabled="!accessDialog.selectedUserId"
-            @click="saveUserAccess"
-          >
+          <v-btn color="indigo-darken-2" class="text-none font-weight-bold rounded-xl px-6 elevation-0" :loading="accessDialog.saving" :disabled="!accessDialog.selectedUserId" @click="saveUserAccess">
             Simpan Hak Akses
           </v-btn>
         </div>
@@ -334,19 +370,10 @@
           Menu <strong class="text-slate-900">{{ deleteDialog.item?.name }}</strong> akan dihapus permanen dari sistem.
         </p>
         <div class="d-flex justify-center" style="gap: 8px;">
-          <v-btn
-            variant="outlined"
-            class="flex-grow-1 rounded-xl text-none font-weight-bold"
-            @click="deleteDialog.show = false"
-          >
+          <v-btn variant="outlined" class="flex-grow-1 rounded-xl text-none font-weight-bold" @click="deleteDialog.show = false">
             Batal
           </v-btn>
-          <v-btn
-            color="error"
-            class="flex-grow-1 rounded-xl text-none font-weight-bold elevation-0"
-            :loading="deleting"
-            @click="executeDelete"
-          >
+          <v-btn color="error" class="flex-grow-1 rounded-xl text-none font-weight-bold elevation-0" :loading="deleting" @click="executeDelete">
             Ya, Hapus
           </v-btn>
         </div>
@@ -354,20 +381,12 @@
     </v-dialog>
 
     <!-- GLOBAL TOAST NOTIFICATION -->
-    <v-snackbar
-      v-model="toast.show"
-      :color="toast.color"
-      location="top right"
-      timeout="3500"
-      elevation="4"
-      rounded="pill"
-    >
+    <v-snackbar v-model="toast.show" :color="toast.color" location="top right" timeout="3500" elevation="4" rounded="pill">
       <div class="d-flex align-center" style="gap: 8px;">
         <v-icon :icon="toast.icon" size="20"></v-icon>
         <span class="font-weight-semibold text-body-2">{{ toast.message }}</span>
       </div>
     </v-snackbar>
-
   </div>
 </template>
 
@@ -403,12 +422,29 @@ const showToast = (message: string, type: 'success' | 'error' = 'success') => {
 }
 
 const headers = [
-  { title: 'Urutan', key: 'sort_order', align: 'start' as const, width: '90px' },
-  { title: 'Ikon', key: 'icon', width: '220px' },
-  { title: 'Nama Menu', key: 'name' },
-  { title: 'Path URL', key: 'path' },
-  { title: 'Status', key: 'is_publish', width: '130px' },
-  { title: 'Aksi', key: 'actions', align: 'end' as const, sortable: false, width: '100px' }
+  { title: 'Urutan', key: 'sort_order', align: 'start' as const, width: '70px' },
+  { title: 'Ikon', key: 'icon', width: '150px' },
+  { title: 'Nama Menu', key: 'name', width: '140px' },
+  { title: 'Path URL', key: 'path', width: '140px' },
+  { title: 'Deskripsi Kartu', key: 'description', width: '220px' },
+  { title: 'Badge Text', key: 'badge_text', width: '130px' },
+  { title: 'Tema Warna', key: 'theme', width: '140px' },
+  { title: 'Status', key: 'is_publish', width: '100px' },
+  { title: 'Aksi', key: 'actions', align: 'end' as const, sortable: false, width: '90px' }
+]
+
+// Palet warna terpadu (icon_bg otomatis menyamakan chip_color)
+const palettes = [
+  { label: 'Indigo', icon_bg: 'indigo-bg', badge_text: 'Modul Utama', chip_color: 'indigo' },
+  { label: 'Blue', icon_bg: 'blue-bg', badge_text: 'Modul Utama', chip_color: 'blue' },
+  { label: 'Cyan', icon_bg: 'cyan-bg', badge_text: 'Portal', chip_color: 'cyan' },
+  { label: 'Emerald', icon_bg: 'emerald-bg', badge_text: 'AI Tools', chip_color: 'success' },
+  { label: 'Teal', icon_bg: 'teal-bg', badge_text: 'Analytics', chip_color: 'teal' },
+  { label: 'Amber', icon_bg: 'amber-bg', badge_text: 'Laporan', chip_color: 'warning' },
+  { label: 'Orange', icon_bg: 'orange-bg', badge_text: 'Operasional', chip_color: 'orange' },
+  { label: 'Purple', icon_bg: 'purple-bg', badge_text: 'Sistem', chip_color: 'purple' },
+  { label: 'Pink', icon_bg: 'pink-bg', badge_text: 'Khusus', chip_color: 'pink' },
+  { label: 'Rose', icon_bg: 'rose-bg', badge_text: 'Prioritas', chip_color: 'error' }
 ]
 
 const dialog = reactive({
@@ -422,8 +458,18 @@ const form = reactive({
   path: '',
   icon: 'mdi:view-dashboard',
   sort_order: 0,
-  is_publish: 'Y'
+  is_publish: 'Y',
+  description: '',
+  icon_bg: 'indigo-bg',
+  badge_text: 'Modul Utama',
+  chip_color: 'indigo'
 })
+
+const selectPalette = (palette: any) => {
+  form.icon_bg = palette.icon_bg
+  form.badge_text = palette.badge_text
+  form.chip_color = palette.chip_color // Otomatis mengikuti warna palet yang sama
+}
 
 const accessDialog = reactive({
   show: false,
@@ -462,8 +508,6 @@ const fetchUsers = async () => {
         users.value = res
       } else if (res.success && Array.isArray(res.data)) {
         users.value = res.data
-      } else if (res.data && Array.isArray(res.data.rows)) {
-        users.value = res.data.rows
       }
     }
   } catch (err: any) {
@@ -488,21 +532,12 @@ const fetchUserMenus = async () => {
   accessDialog.loadingMenus = true
   try {
     const res: any = await $api(`/menus/user/${accessDialog.selectedUserId}`, { method: 'GET' })
-    
     if (res && res.success) {
       accessDialog.menuItems = res.data.map((m: any) => {
-        const assignedFlag = m.is_assigned ?? m.has_access ?? m.is_checked ?? m.status ?? m.checked ?? false
-        const isChecked = 
-          assignedFlag === true || 
-          assignedFlag === 1 || 
-          assignedFlag === '1' || 
-          assignedFlag === 'Y' || 
-          assignedFlag === 'true' ||
-          assignedFlag > 0
-          
+        const flag = m.is_assigned ?? m.has_access ?? m.is_checked ?? m.checked ?? false
         return {
           ...m,
-          is_checked: isChecked
+          is_checked: flag === true || flag === 1 || flag === '1' || flag === 'Y' || flag === 'true'
         }
       })
     }
@@ -520,22 +555,17 @@ const saveUserAccess = async () => {
     const payload = {
       menuIds: accessDialog.menuItems.filter((m: any) => m.is_checked).map((m: any) => m.id)
     }
-
     const res: any = await $api(`/menus/user/${accessDialog.selectedUserId}`, {
       method: 'POST',
       body: payload
     })
-
     if (res && res.success) {
       showToast('Hak akses menu berhasil disimpan!')
       accessDialog.show = false
-      window.dispatchEvent(new CustomEvent('menu-access-updated'))
     }
   } catch (err: any) {
-    console.error('Gagal menyimpan hak akses:', err)
-    // Menangkap pesan error spesifik dari backend (message atau error)
-    const backendMessage = err?.data?.message || err?.data?.error || err?.message || 'Terjadi kesalahan saat menyimpan hak akses'
-    showToast(backendMessage, 'error')
+    const msg = err?.data?.message || err?.data?.error || err?.message || 'Gagal menyimpan hak akses'
+    showToast(msg, 'error')
   } finally {
     accessDialog.saving = false
   }
@@ -549,6 +579,10 @@ const openAddDialog = () => {
   form.icon = 'mdi:view-dashboard'
   form.sort_order = menus.value.length + 1
   form.is_publish = 'Y'
+  form.description = ''
+  form.icon_bg = 'indigo-bg'
+  form.badge_text = 'Modul Utama'
+  form.chip_color = 'indigo'
   dialog.show = true
 }
 
@@ -560,6 +594,10 @@ const openEditDialog = (item: any) => {
   form.icon = item.icon || ''
   form.sort_order = item.sort_order ?? 0
   form.is_publish = item.is_publish || 'Y'
+  form.description = item.description || ''
+  form.icon_bg = item.icon_bg || 'indigo-bg'
+  form.badge_text = item.badge_text || 'Modul Utama'
+  form.chip_color = item.chip_color || 'indigo'
   dialog.show = true
 }
 
@@ -567,26 +605,17 @@ const saveMenu = async () => {
   saving.value = true
   try {
     if (dialog.isEdit) {
-      await $api(`/menus/${dialog.editId}`, {
-        method: 'PUT',
-        body: form
-      })
+      await $api(`/menus/${dialog.editId}`, { method: 'PUT', body: form })
       showToast('Menu berhasil diperbarui!')
     } else {
-      await $api('/menus', {
-        method: 'POST',
-        body: form
-      })
+      await $api('/menus', { method: 'POST', body: form })
       showToast('Menu baru berhasil ditambahkan!')
     }
     dialog.show = false
     await fetchMenus()
-    window.dispatchEvent(new CustomEvent('menu-access-updated'))
   } catch (err: any) {
-    console.error('Gagal menyimpan menu:', err)
-    // Menangkap pesan error spesifik dari backend
-    const backendMessage = err?.data?.message || err?.data?.error || err?.message || 'Terjadi kesalahan saat menyimpan menu'
-    showToast(backendMessage, 'error')
+    const msg = err?.data?.message || err?.data?.error || err?.message || 'Gagal menyimpan menu'
+    showToast(msg, 'error')
   } finally {
     saving.value = false
   }
@@ -605,12 +634,9 @@ const executeDelete = async () => {
     deleteDialog.show = false
     showToast('Menu berhasil dihapus!')
     await fetchMenus()
-    window.dispatchEvent(new CustomEvent('menu-access-updated'))
   } catch (err: any) {
-    console.error('Gagal menghapus menu:', err)
-    // Menangkap pesan error spesifik dari backend
-    const backendMessage = err?.data?.message || err?.data?.error || err?.message || 'Gagal menghapus menu'
-    showToast(backendMessage, 'error')
+    const msg = err?.data?.message || err?.data?.error || err?.message || 'Gagal menghapus menu'
+    showToast(msg, 'error')
   } finally {
     deleting.value = false
   }
@@ -620,9 +646,10 @@ onMounted(() => {
   fetchMenus()
 })
 </script>
+
 <style scoped>
 .menu-management-page {
-  max-width: 1140px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 28px 20px 50px 20px;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -678,29 +705,74 @@ onMounted(() => {
   margin: 0;
 }
 
-.modal-icon-container {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Grid Palet Warna */
+.color-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
 }
 
-.bg-red-light { background-color: #ffeeec; }
-.bg-indigo-subtle { background-color: #f5f3ff !important; }
-
-.menu-checkbox-item {
-  border-color: #e2e8f0 !important;
+.palette-item {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px;
+  text-align: center;
+  cursor: pointer;
   transition: all 0.2s ease;
+  background: #f8fafc;
 }
-.menu-checkbox-item:hover {
-  border-color: #c7d2fe !important;
-  background-color: #faf8ff !important;
+
+.palette-item:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.palette-item.active-palette {
+  border-color: #4f46e5;
+  background: #eef2ff;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+.palette-preview {
+  width: 100%;
+  height: 26px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.palette-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #475569;
+  display: block;
+}
+
+/* Daftar Pilihan Gradasi Warna */
+.indigo-bg { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
+.blue-bg { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+.cyan-bg { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
+.emerald-bg { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.teal-bg { background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); }
+.amber-bg { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.orange-bg { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
+.purple-bg { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+.pink-bg { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
+.rose-bg { background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); }
+
+.color-swatch-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.table-card-wrapper {
+  overflow-x: auto;
 }
 
 :deep(.v-data-table) {
   background: transparent !important;
+  min-width: 1100px;
 }
 
 :deep(.v-data-table-header th) {
@@ -715,8 +787,8 @@ onMounted(() => {
 
 :deep(.v-data-table td) {
   border-bottom: 1px solid #f1f5f9 !important;
-  padding-top: 10px !important;
-  padding-bottom: 10px !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
 }
 
 .slide-up {
