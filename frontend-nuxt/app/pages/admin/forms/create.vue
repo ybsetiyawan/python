@@ -200,7 +200,7 @@
         <p>Formulir Anda siap digunakan. Silakan salin link berikut:</p>
         
         <div class="link-box">
-          <input type="text" readonly :value="getPublicLink(createdFormId)" class="form-control code-input" />
+          <input ref="linkInputRef" type="text" readonly :value="getPublicLink(createdFormId)" class="form-control code-input" />
           <button @click="copyLink(getPublicLink(createdFormId))" class="btn-copy">
             {{ copied ? 'Tersalin!' : 'Salin' }}
           </button>
@@ -233,10 +233,11 @@ const { getToken } = useAuth()
 
 const formMeta = reactive({ title: '', description: '' })
 const fields = ref<any[]>([])
-const stockPoints = ref<any[]>([]) // Menyimpan master data stock point
+const stockPoints = ref<any[]>([])
 const isSaving = ref(false)
 const createdFormId = ref<string | null>(null)
 const copied = ref(false)
+const linkInputRef = ref<HTMLInputElement | null>(null)
 
 // State Error & Validation UI
 const titleError = ref('')
@@ -339,14 +340,13 @@ const addOption = (field: any) => {
   })
 }
 
-// Fungsi untuk memasukkan data master Stock Point langsung ke opsi field
+// Fungsi untuk memasukkan data master Stock Point langsung ke opsi field (sudah diperbaiki)
 const loadStockPointsIntoField = (field: any) => {
   if (stockPoints.value.length === 0) {
     showToast('Data Kosong', 'Master data Stock Point belum tersedia atau gagal dimuat.', 'error')
     return
   }
   
-  // Ubah format data stock point menjadi struktur opsi (label & value)
   field.options = stockPoints.value.map((sp: any) => ({
     label: `${sp.kode_spoint} - ${sp.nama_spoint} (${sp.nama_cab})`,
     value: sp.kode_spoint
@@ -444,10 +444,31 @@ const saveForm = async () => {
 
 const getPublicLink = (id: string) => `${window.location.origin}/admin/forms/${id}`
 
+// Fungsi Copy Aman (Fallback HTTP/Production Non-HTTPS support)
 const copyLink = (text: string) => {
-  navigator.clipboard.writeText(text)
-  copied.value = true
-  setTimeout(() => copied.value = false, 2000)
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      copied.value = true
+      setTimeout(() => copied.value = false, 2000)
+    }).catch(() => {
+      fallbackCopyText(text)
+    })
+  } else {
+    fallbackCopyText(text)
+  }
+}
+
+const fallbackCopyText = (text: string) => {
+  if (linkInputRef.value) {
+    linkInputRef.value.select()
+    try {
+      document.execCommand('copy')
+      copied.value = true
+      setTimeout(() => copied.value = false, 2000)
+    } catch (err) {
+      showToast('Gagal', 'Gagal menyalin link ke clipboard', 'error')
+    }
+  }
 }
 
 const resetBuilder = () => {
