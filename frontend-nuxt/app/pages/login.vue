@@ -1,129 +1,140 @@
 <template>
-    <v-container fluid class="pa-0 fill-height bg-white overflow-hidden">
-        <v-row no-gutters class="fill-height">
+  <v-container fluid class="pa-0 fill-height login-container overflow-hidden">
+    <v-row no-gutters class="fill-height">
 
-            <v-col cols="12" md="5" lg="4" class="d-flex align-center bg-white z-index-2 shadow-xl">
-                <div class="pa-8 pa-md-16 w-100">
+      <!-- KIRI: BRANDING & RUANG KERJA (WARNA KORPORAT ELEGAN) -->
+      <v-col cols="12" md="6" lg="6" class="left-pane d-none d-md-flex flex-column justify-space-between pa-12 pa-lg-16 position-relative">
+        <div class="blob-glow-1"></div>
+        <div class="blob-glow-2"></div>
 
-                    <div class="d-flex align-center mb-12">
-                        <div class="logo-box mr-3">
-                            <v-icon color="white" size="30">mdi-source-branch-plus</v-icon>
-                        </div>
-                        <span class="text-h6 font-weight-black text-slate-800 tracking-tighter">EDP SBY -
-                            <span class="text-primary font-weight-light text-subtitle-2">Vision</span>
-                            </span>
-                    </div>
-                    <v-alert v-if="infoMessage" type="warning" variant="tonal" closable class="mb-4 text-caption"
-                        density="compact">
-                        {{ infoMessage }}
-                    </v-alert>
+        <!-- Header Kiri -->
+        <div class="z-index-1">
+          <div class="d-flex align-center">
+            <div class="logo-box-alt mr-3">
+              <v-icon color="white" size="22">mdi-account-group-outline</v-icon>
+            </div>
+            <div>
+              <span class="text-subtitle-1 font-weight-black text-white tracking-widest d-block">EDP WORKSPACE SBY</span>
+              <span class="text-caption text-indigo-lighten-3">PT Indomarco Adi Prima &bull; Surabaya</span>
+            </div>
+          </div>
+        </div>
 
-                    <!-- <div class="mb-10">
-                        <h1 class="text-h3 font-weight-black text-slate-900 mb-2 tracking-tighter">Login.</h1>
-                        <p class="text-body-1 text-slate-500">Gunakan akses admin Anda untuk masuk ke sistem verifikasi.
-                        </p>
-                    </div> -->
+        <!-- Pesan Utama (Bahasa Indonesia & Ringkas) -->
+        <div class="z-index-1 my-auto py-10" style="max-width: 480px;">
+          <div class="badge-pill mb-4">
+            <v-icon size="14" color="indigo-lighten-3" class="mr-1">mdi-hub-outline</v-icon> Ruang Kerja Bersama
+          </div>
+          <h1 class="text-h3 font-weight-black text-white mb-4" style="line-height: 1.2;">
+            Kolaborasi Mudah Antar Pengguna.
+          </h1>
+          <p class="text-body-1 text-indigo-lighten-3 font-weight-regular" style="line-height: 1.6;">
+            Ruang kerja internal terpusat untuk memudahkan interaksi, pengelolaan data master, dan sinkronisasi operasional antar departemen di cabang Surabaya.
+          </p>
+        </div>
 
-                    <v-form @submit.prevent="handleLogin">
-                        <div class="mb-6">
-                            <label class="text-subtitle-2 font-weight-black text-slate-700 ml-1">EMAIL</label>
-                            <v-text-field v-model="email" placeholder="Enter your email account" variant="outlined"
-                                density="comfortable" rounded="lg" color="primary" class="mt-2 custom-field"
-                                prepend-inner-icon="mdi-email-alert-outline" hide-details />
-                        </div>
+        <!-- COPYRIGHT DI KIRI -->
+        <div class="z-index-1 text-caption text-indigo-lighten-3 font-weight-medium">
+          Copyright &copy; @Ybs - EDPSBY 2026
+        </div>
+      </v-col>
 
-                        <div class="mb-8">
-                            <div class="d-flex justify-space-between align-center ml-1">
-                                <label class="text-subtitle-2 font-weight-black text-slate-700">PASSWORD</label>
-                                <!-- <span class="text-caption font-weight-bold text-primary cursor-pointer">Lupa?</span> -->
-                            </div>
-                            <v-text-field v-model="password" :type="showPassword ? 'text' : 'password'"
-                                placeholder="••••••••" variant="outlined" density="comfortable" rounded="lg"
-                                color="primary" class="mt-2 custom-field" prepend-inner-icon="mdi-lock-outline"
-                                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                                @click:append-inner="showPassword = !showPassword" hide-details />
-                        </div>
+      <!-- KANAN: FORM LOGIN -->
+      <v-col cols="12" md="6" lg="6" class="right-pane d-flex align-center justify-center bg-white pa-8 pa-md-16">
+        <div class="w-100" style="max-width: 420px;">
+          
+          <!-- Mobile Header -->
+          <div class="d-flex align-center mb-8 d-md-none">
+            <div class="logo-box-alt mr-3" style="background: #4f46e5;">
+              <v-icon color="white" size="20">mdi-account-group-outline</v-icon>
+            </div>
+            <div>
+              <span class="text-subtitle-1 font-weight-black text-slate-900 d-block">EDP WORKSPACE SBY</span>
+              <span class="text-caption text-slate-500">Internal Ruang Kerja</span>
+            </div>
+          </div>
 
-                        <v-expand-transition>
-                            <v-alert v-if="error" type="error" variant="tonal"
-                                class="mb-6 rounded-lg text-caption font-weight-bold" icon="mdi-alert-circle">
-                                {{ error }}
-                            </v-alert>
-                        </v-expand-transition>
+          <div class="mb-8">
+            <h2 class="text-h4 font-weight-extrabold text-slate-900 mb-2">Masuk Ruang Kerja</h2>
+            <p class="text-body-2 text-slate-500">Masukkan akun kredensial Anda untuk mengakses sistem.</p>
+          </div>
 
-                        <v-btn block color="primary" height="56" elevation="0"
-                            class="rounded-lg font-weight-black text-none" :loading="loading" @click="handleLogin">
-                            Akses Dashboard
-                            <v-icon end size="18" class="ml-2">mdi-chevron-right</v-icon>
-                        </v-btn>
-                    </v-form>
+          <v-alert v-if="infoMessage" type="warning" variant="tonal" class="mb-4 text-caption rounded-xl" density="compact">
+            {{ infoMessage }}
+          </v-alert>
 
-                    <div class="mt-16 text-caption text-slate-400 d-flex align-center">
-                        <v-icon size="14" class="mr-2">mdi-shield-check</v-icon>
-                        Ybs - @EDPSBY &bull; &copy; 2026
-                    </div>
-                </div>
-            </v-col>
+          <v-form @submit.prevent="handleLogin">
+            <div class="mb-4">
+              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">ALAMAT EMAIL</label>
+              <v-text-field
+                v-model="email"
+                placeholder="nama@indomarco.co.id"
+                variant="outlined"
+                density="comfortable"
+                rounded="lg"
+                color="indigo-darken-2"
+                prepend-inner-icon="mdi-email-outline"
+                hide-details
+              ></v-text-field>
+            </div>
 
-            <v-col cols="12" md="7" lg="8"
-                class="bg-slate-50 d-none d-md-flex align-center justify-center position-relative">
+            <div class="mb-6">
+              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">PASSWORD</label>
+              <v-text-field
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="••••••••"
+                variant="outlined"
+                density="comfortable"
+                rounded="lg"
+                color="indigo-darken-2"
+                prepend-inner-icon="mdi-lock-outline"
+                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                @click:append-inner="showPassword = !showPassword"
+                hide-details
+              ></v-text-field>
+            </div>
 
-                <div class="bg-pattern"></div>
+            <v-expand-transition>
+              <v-alert v-if="error" type="error" variant="tonal" class="mb-6 rounded-xl text-caption font-weight-bold" icon="mdi-alert-circle">
+                {{ error }}
+              </v-alert>
+            </v-expand-transition>
 
-                <div class="preview-container">
-                    <v-card flat class="rounded-xl shadow-2xl border pa-6 bg-white overflow-hidden" width="500">
-                        <div class="d-flex align-center justify-space-between mb-8">
-                            <div class="d-flex align-center">
-                                <div class="status-dot mr-2"></div>
-                                <span class="text-caption font-weight-black text-slate-400">Optical Character
-                                    Recognition</span>
-                            </div>
-                            <v-icon color="grey-lighten-3">mdi-dots-horizontal</v-icon>
-                        </div>
+            <v-btn
+              block
+              color="indigo-darken-2"
+              height="50"
+              elevation="0"
+              class="rounded-xl font-weight-bold text-none text-subtitle-2 shadow-sm"
+              :loading="loading"
+              @click="handleLogin"
+            >
+              Masuk ke Ruang Kerja
+              <v-icon end size="18" class="ml-2">mdi-arrow-right</v-icon>
+            </v-btn>
+          </v-form>
 
-                        <div v-for="i in 3" :key="i"
-                            class="mb-4 d-flex align-center pa-4 rounded-lg bg-slate-50 border-dashed">
-                            <v-avatar size="40" color="primary-lighten-5" class="mr-4">
-                                <v-icon color="primary" size="20">mdi-file-document-outline</v-icon>
-                            </v-avatar>
-                            <div class="flex-grow-1">
-                                <div class="bg-slate-200 rounded mb-2" style="width: 40%; height: 10px;"></div>
-                                <div class="bg-slate-100 rounded" style="width: 25%; height: 8px;"></div>
-                            </div>
-                            <v-chip size="x-small" color="success" variant="flat"
-                                class="font-weight-black">VERIFIED</v-chip>
-                        </div>
+          <!-- Copyright Mobile -->
+          <div class="mt-12 text-center text-caption text-slate-400 d-md-none font-weight-medium">
+            Copyright &copy; @Ybs - EDPSBY 2026
+          </div>
 
-                        <div class="mt-8 pt-4 border-t d-flex justify-space-between align-center">
-                            <span class="text-caption font-weight-bold text-slate-400">SESSIONS: 128 ACTIVE</span>
-                            <v-progress-circular indeterminate size="16" width="2"
-                                color="primary"></v-progress-circular>
-                        </div>
-                    </v-card>
-                </div>
+        </div>
+      </v-col>
 
-                <div class="position-absolute" style="bottom: 40px; right: 40px;">
-                    <v-chip color="blue" class="shadow-sm font-weight-bold" size="large">
-                        <v-icon start color="success">mdi-check-decagram</v-icon>
-                        System Version 1.1.0
-                    </v-chip>
-                </div>
-            </v-col>
-
-        </v-row>
-
-    </v-container>
+    </v-row>
+  </v-container>
 </template>
-
-
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useRouter } from "#imports";
+import { useRouter, useRoute } from "#imports";
 import { useAuth } from "~/composables/useAuth";
 import { adminLogin } from "~/services/api";
 
 const router = useRouter();
+const route = useRoute();
 const { isAuthenticated } = useAuth();
 
 const email = ref("");
@@ -131,22 +142,17 @@ const password = ref("");
 const loading = ref(false);
 const error = ref("");
 const showPassword = ref(false);
-const route = useRoute()
-const infoMessage = ref("")
+const infoMessage = ref("");
 
 onMounted(() => {
-    // 1. Cek query parameter dulu
     if (route.query.msg === 'session_expired') {
-        infoMessage.value = "Sesi Anda telah berakhir. Silakan login kembali."
+        infoMessage.value = "Sesi Anda telah berakhir. Silakan login kembali.";
+        router.replace({ query: {} });
+    } else if (isAuthenticated()) {
+        router.push("/admin/dashboard");
+    }
+});
 
-        // Opsional: Hapus query param dari URL agar tidak muncul terus saat di-refresh
-        router.replace({ query: {} })
-    }
-    // 2. Jika tidak ada pesan error, baru cek apakah sudah login
-    else if (isAuthenticated()) {
-        router.push("/admin/dashboard")
-    }
-})
 async function handleLogin() {
     if (!email.value || !password.value) {
         error.value = "E-mail dan password wajib diisi";
@@ -158,13 +164,9 @@ async function handleLogin() {
 
         const data = await adminLogin(email.value, password.value);
 
-        // 1. Simpan Token
         localStorage.setItem("admin_token", data.token);
-
-        // 2. Simpan Data User (Gunakan JSON.stringify karena data adalah objek)
         localStorage.setItem("user_data", JSON.stringify(data.user));
 
-        // Redirect ke dashboard
         router.push("/admin/dashboard");
     } catch (err: any) {
         error.value = err.message || "Login gagal, silakan coba lagi.";
@@ -175,97 +177,72 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-.z-index-2 {
-    z-index: 2;
+.left-pane {
+  /* Perpaduan warna Midnight Blue, Deep Navy, dan aksen Indigo yang harmonis & profesional */
+  background: linear-gradient(135deg, #090d16 0%, #1e1b4b 60%, #312e81 100%);
+  height: 100vh;
+  overflow: hidden;
 }
 
-.shadow-xl {
-    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.03) !important;
+.right-pane {
+  height: 100vh;
 }
 
-.shadow-2xl {
-    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.08) !important;
+.blob-glow-1 {
+  position: absolute;
+  top: -100px;
+  left: -100px;
+  width: 400px;
+  height: 400px;
+  background: rgba(99, 102, 241, 0.25);
+  filter: blur(90px);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
-.bg-slate-50 {
-    background-color: #f8fafc !important;
+.blob-glow-2 {
+  position: absolute;
+  bottom: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: rgba(79, 70, 229, 0.2);
+  filter: blur(90px);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
-.text-slate-900 {
-    color: #0f172a;
+.z-index-1 {
+  position: relative;
+  z-index: 1;
 }
 
-.text-slate-800 {
-    color: #1e293b;
+.logo-box-alt {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.4);
 }
 
-.text-slate-700 {
-    color: #334155;
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0e7ff;
+  backdrop-filter: blur(4px);
 }
 
-.text-slate-500 {
-    color: #64748b;
-}
-
-.text-slate-400 {
-    color: #94a3b8;
-}
-
-.bg-slate-200 {
-    background-color: #e2e8f0;
-}
-
-.bg-slate-100 {
-    background-color: #f1f5f9;
-}
-
-.logo-box {
-    width: 40px;
-    height: 40px;
-    background-color: rgb(var(--v-theme-primary));
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(var(--v-theme-primary), 0.3);
-}
-
-.custom-field :deep(.v-field__outline) {
-    --v-field-border-opacity: 0.15 !important;
-}
-
-.bg-pattern {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: radial-gradient(rgb(var(--v-theme-primary)) 0.5px, transparent 0.5px);
-    background-size: 30px 30px;
-    opacity: 0.1;
-}
-
-.border-dashed {
-    border: 1px dashed #e2e8f0 !important;
-}
-
-.status-dot {
-    width: 8px;
-    height: 8px;
-    background-color: #4caf50;
-    border-radius: 50%;
-}
-
-.tracking-tighter {
-    letter-spacing: -2px !important;
-}
-
-.preview-container {
-    transform: perspective(1000px) rotateY(-5deg) rotateX(2deg);
-    transition: transform 0.5s ease;
-}
-
-.preview-container:hover {
-    transform: perspective(1000px) rotateY(0deg) rotateX(0deg);
-}
+.text-slate-900 { color: #0f172a; }
+.text-slate-700 { color: #334155; }
+.text-slate-500 { color: #64748b; }
+.text-slate-400 { color: #94a3b8; }
 </style>
