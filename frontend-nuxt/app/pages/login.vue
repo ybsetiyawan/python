@@ -14,7 +14,7 @@
               <v-icon color="white" size="22">mdi-account-group-outline</v-icon>
             </div>
             <div>
-              <span class="text-subtitle-1 font-weight-black text-white tracking-widest d-block">EDP WORKSPACE SBY</span>
+              <span class="text-subtitle-1 font-weight-black text-white tracking-widest d-block">EDPSBY Workspace</span>
               <span class="text-caption text-indigo-lighten-3">PT Indomarco Adi Prima &bull; Surabaya</span>
             </div>
           </div>
@@ -23,13 +23,13 @@
         <!-- Pesan Utama -->
         <div class="z-index-1 my-auto py-10" style="max-width: 480px;">
           <div class="badge-pill mb-4">
-            <v-icon size="14" color="indigo-lighten-3" class="mr-1">mdi-hub-outline</v-icon> Ruang Kerja Bersama
+            <v-icon size="20" color="indigo-lighten-3" class="mr-3">mdi-hub-outline</v-icon> Ruang Kerja Bersama
           </div>
           <h1 class="text-h3 font-weight-black text-white mb-4" style="line-height: 1.2;">
             Kolaborasi Mudah Antar Pengguna.
           </h1>
           <p class="text-body-1 text-indigo-lighten-3 font-weight-regular" style="line-height: 1.6;">
-            Ruang kerja internal untuk memudahkan interaksi dan sinkronisasi operasional antar departemen di cabang Surabaya.
+            Ruang kerja internal untuk memudahkan interaksi dan operasional antar departemen di cabang Surabaya.
           </p>
         </div>
 
@@ -49,14 +49,13 @@
               <v-icon color="white" size="20">mdi-account-group-outline</v-icon>
             </div>
             <div>
-              <span class="text-subtitle-1 font-weight-black text-slate-900 d-block">EDP WORKSPACE SBY</span>
+              <span class="text-subtitle-1 font-weight-black text-slate-900 d-block">EDPSBY Workspace</span>
               <span class="text-caption text-slate-500">Internal Ruang Kerja</span>
             </div>
           </div>
 
-          <div class="mb-8">
-            <h2 class="text-h4 font-weight-extrabold text-slate-900 mb-2">Masuk Ruang Kerja</h2>
-            <p class="text-body-2 text-slate-500">Masukkan akun kredensial Anda untuk mengakses sistem.</p>
+          <div class="mb-9">
+            <p class="text-body-5 text-slate-500">Masukkan akun kredensial Anda untuk mengakses sistem.</p>
           </div>
 
           <v-alert v-if="infoMessage" type="warning" variant="tonal" class="mb-4 text-caption rounded-xl" density="compact">
