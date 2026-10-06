@@ -61,6 +61,7 @@
             <span :class="['status-badge', form.allow_submission !== false ? 'status-open' : 'status-closed']">
               {{ form.allow_submission !== false ? '🟢 Buka' : '🔴 Ditutup' }}
             </span>
+
           </div>
 
           <span class="paper-date">{{ formatDate(form.created_at || form.createdAt) }}</span>
@@ -110,6 +111,9 @@
       </div>
     </div>
 
+    <!-- Hidden Input untuk Fallback Copy di Server Non-HTTPS -->
+    <input ref="hiddenInputRef" type="text" class="sr-only" aria-hidden="true" />
+
     <!-- Toast Notification Floating -->
     <Transition name="toast">
       <div v-if="toast.show" class="toast-floating">
@@ -143,6 +147,7 @@ interface FormItem {
 const forms = ref<FormItem[]>([])
 const pending = ref(true)
 const toast = reactive({ show: false, message: '' })
+const hiddenInputRef = ref<HTMLInputElement | null>(null)
 
 const fetchForms = async () => {
   pending.value = true
@@ -188,10 +193,32 @@ const showToast = (msg: string) => {
   setTimeout(() => toast.show = false, 2500)
 }
 
+// Fungsi Salin Link dengan Fallback Aman untuk Production HTTP
 const copyPublicLink = (id: string | number) => {
   const url = `${window.location.origin}/admin/forms/${id}`
-  navigator.clipboard.writeText(url)
-  showToast('Link formulir berhasil disalin!')
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Link formulir berhasil disalin!')
+    }).catch(() => {
+      fallbackCopyText(url)
+    })
+  } else {
+    fallbackCopyText(url)
+  }
+}
+
+const fallbackCopyText = (text: string) => {
+  if (hiddenInputRef.value) {
+    hiddenInputRef.value.value = text
+    hiddenInputRef.value.select()
+    try {
+      document.execCommand('copy')
+      showToast('Link formulir berhasil disalin!')
+    } catch (err) {
+      showToast('Gagal menyalin link ke clipboard')
+    }
+  }
 }
 
 const toggleFormStatus = async (form: FormItem) => {
@@ -229,6 +256,18 @@ const formatDate = (dateStr?: string) => {
   padding: 32px 20px 80px 20px;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #1e293b;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .admin-header {
@@ -417,7 +456,6 @@ const formatDate = (dateStr?: string) => {
   margin-bottom: 20px;
 }
 
-/* Perbaikan Tampilan Judul Agar Lebih Rapi dan Mendukung Teks Panjang */
 .paper-title {
   font-size: 15px;
   font-weight: 700;
@@ -425,7 +463,7 @@ const formatDate = (dateStr?: string) => {
   margin: 0 0 6px 0;
   line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* Batasi maksimal 2 baris agar tetap rapi */
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -470,7 +508,6 @@ const formatDate = (dateStr?: string) => {
   transform: translateY(-3px);
 }
 
-/* Tombol Toggle Buka / Tutup */
 .btn-close-form {
   background-color: #fee2e2;
   color: #991b1b;
