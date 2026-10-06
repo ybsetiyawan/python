@@ -1,5 +1,5 @@
 <template>
-  <v-app class="workspace-layout">
+  <v-app class="workspace-layout" :class="{ 'slide-out-right': isLoggingOut }">
     <!-- NAVIGATION DRAWER: LIGHT & CLEAN -->
     <v-navigation-drawer
       v-model="drawer"
@@ -195,6 +195,7 @@ const route = useRoute();
 const { logout: authLogout } = useAuth();
 const drawer = ref(true);
 const userName = ref("Guest");
+const isLoggingOut = ref(false); // State animasi geser ke kanan saat logout
 
 const menus = ref<any[]>([]);
 const menuLoading = ref(true);
@@ -285,7 +286,13 @@ const userInitials = computed(() => {
 });
 
 function logout() {
-  authLogout();
+  // Aktifkan animasi geser ke kanan
+  isLoggingOut.value = true;
+
+  // Beri jeda 500ms untuk efek animasi sebelum membersihkan sesi dan pindah ke halaman login
+  setTimeout(() => {
+    authLogout();
+  }, 500);
 }
 
 async function exportExcel() {
@@ -331,7 +338,15 @@ async function exportExcel() {
 .workspace-layout {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: #f8fafc;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
 }
+
+/* Efek transisi layar bergeser mulus ke arah KANAN saat logout */
+.slide-out-right {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
 .sidebar-clean {
   background-color: #ffffff !important;
   border-right: 1px solid #e2e8f0;

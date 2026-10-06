@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="pa-0 fill-height login-container overflow-hidden">
+  <v-container fluid class="pa-0 fill-height login-container overflow-hidden" :class="{ 'slide-out-left': isExiting }">
     <v-row no-gutters class="fill-height">
 
       <!-- KIRI: BRANDING & RUANG KERJA (WARNA KORPORAT ELEGAN) -->
@@ -20,7 +20,7 @@
           </div>
         </div>
 
-        <!-- Pesan Utama (Bahasa Indonesia & Ringkas) -->
+        <!-- Pesan Utama -->
         <div class="z-index-1 my-auto py-10" style="max-width: 480px;">
           <div class="badge-pill mb-4">
             <v-icon size="14" color="indigo-lighten-3" class="mr-1">mdi-hub-outline</v-icon> Ruang Kerja Bersama
@@ -29,7 +29,7 @@
             Kolaborasi Mudah Antar Pengguna.
           </h1>
           <p class="text-body-1 text-indigo-lighten-3 font-weight-regular" style="line-height: 1.6;">
-            Ruang kerja internal terpusat untuk memudahkan interaksi, pengelolaan data master, dan sinkronisasi operasional antar departemen di cabang Surabaya.
+            Ruang kerja internal untuk memudahkan interaksi dan sinkronisasi operasional antar departemen di cabang Surabaya.
           </p>
         </div>
 
@@ -65,7 +65,7 @@
 
           <v-form @submit.prevent="handleLogin">
             <div class="mb-4">
-              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">ALAMAT EMAIL</label>
+              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">ALAMAT EMAIL INDOMARCO</label>
               <v-text-field
                 v-model="email"
                 placeholder="nama@indomarco.co.id"
@@ -143,6 +143,7 @@ const loading = ref(false);
 const error = ref("");
 const showPassword = ref(false);
 const infoMessage = ref("");
+const isExiting = ref(false);
 
 onMounted(() => {
     if (route.query.msg === 'session_expired') {
@@ -167,18 +168,33 @@ async function handleLogin() {
         localStorage.setItem("admin_token", data.token);
         localStorage.setItem("user_data", JSON.stringify(data.user));
 
-        router.push("/admin/dashboard");
+        // Aktifkan animasi transisi geser ke KIRI
+        isExiting.value = true;
+
+        setTimeout(() => {
+            router.push("/admin/dashboard");
+        }, 500);
+
     } catch (err: any) {
         error.value = err.message || "Login gagal, silakan coba lagi.";
-    } finally {
         loading.value = false;
     }
 }
 </script>
 
 <style scoped>
+.login-container {
+  height: 100vh;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+}
+
+/* Efek transisi layar bergeser mulus ke arah kiri (masuk workspace) */
+.slide-out-left {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
 .left-pane {
-  /* Perpaduan warna Midnight Blue, Deep Navy, dan aksen Indigo yang harmonis & profesional */
   background: linear-gradient(135deg, #090d16 0%, #1e1b4b 60%, #312e81 100%);
   height: 100vh;
   overflow: hidden;
