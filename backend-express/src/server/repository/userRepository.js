@@ -33,16 +33,41 @@ static async findByEmail(email) {
 
   // Tambah user baru
   static async create(userData) {
-    const { id, name, email, hashedPassword } = userData;
-    const query = `
+  const { id, name, email, hashedPassword } = userData;
+  const dashboardMenuId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'; // ID Menu Dashboard
+
+  // Gunakan client pool untuk transaksi
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Insert data user baru
+    const userQuery = `
       INSERT INTO users (id, name, email, password)
       VALUES ($1, $2, $3, $4)
       RETURNING id, name, email, created_at
     `;
-    const values = [id, name, email, hashedPassword];
-    const result = await pool.query(query, values);
-    return result.rows[0];
+    const userValues = [id, name, email, hashedPassword];
+    const userResult = await client.query(userQuery, userValues);
+    const newUser = userResult.rows[0];
+
+    // 2. Otomatis berikan akses ke menu Dashboard
+    const menuQuery = `
+      INSERT INTO user_menus (user_id, menu_id)
+      VALUES ($1, $2)
+      ON CONFLICT DO NOTHING
+    `;
+    await client.query(menuQuery, [newUser.id, dashboardMenuId]);
+
+    await client.query('COMMIT');
+    return newUser;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
+}
 
   // Update user berdasarkan ID
   static async update(userId, userData) {
