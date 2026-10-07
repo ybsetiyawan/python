@@ -342,6 +342,50 @@ const getFileUrl = (filePath) => {
   return `${protocol}//${hostname}:${backendPort}/${cleanPath}`
 }
 
+// const exportToExcel = () => {
+//   if (submissions.value.length === 0) return
+
+//   const headers = ['No', 'Waktu Kirim', 'Nama Pengisi', 'Email', ...dynamicHeaders.value.map(k => getFieldLabel(k)), 'IP Address']
+//   let csvContent = "data:text/csv;charset=utf-8,"
+//   csvContent += headers.map(h => `"${h}"`).join(",") + "\r\n"
+
+//   submissions.value.forEach((sub, index) => {
+//     const parsed = parseResponses(sub.responses)
+    
+//     const rowValues = [
+//       index + 1,
+//       formatDate(sub.created_at),
+//       sub.user_name || 'Guest',
+//       sub.user_email || '-'
+//     ]
+
+//     dynamicHeaders.value.forEach(key => {
+//       const fieldAttachments = sub.attachments ? sub.attachments.filter(att => att.field_id === key) : []
+      
+//       if (fieldAttachments.length > 0) {
+//         const urls = fieldAttachments.map(att => getFileUrl(att.file_path))
+//         rowValues.push(urls.join(', '))
+//       } else {
+//         const val = parsed[key]
+//         rowValues.push(formatCellVal(val, key))
+//       }
+//     })
+
+//     rowValues.push(sub.ip_address || '-' )
+
+//     const formattedRow = rowValues.map(val => `"${(val || '').toString().replace(/"/g, '""')}"`)
+//     csvContent += formattedRow.join(",") + "\r\n"
+//   })
+
+//   const encodedUri = encodeURI(csvContent)
+//   const link = document.createElement("a")
+//   link.setAttribute("href", encodedUri)
+//   link.setAttribute("download", `Laporan-Lengkap-Responses-${formId}.csv`)
+//   document.body.appendChild(link)
+//   link.click()
+//   document.body.removeChild(link)
+// }
+
 const exportToExcel = () => {
   if (submissions.value.length === 0) return
 
@@ -363,11 +407,17 @@ const exportToExcel = () => {
       const fieldAttachments = sub.attachments ? sub.attachments.filter(att => att.field_id === key) : []
       
       if (fieldAttachments.length > 0) {
+        // PERBAIKAN DI SINI: Panggil getFileUrl agar link download menggunakan IP/Domain server secara lengkap
         const urls = fieldAttachments.map(att => getFileUrl(att.file_path))
         rowValues.push(urls.join(', '))
       } else {
         const val = parsed[key]
-        rowValues.push(formatCellVal(val, key))
+        // Cek jika val berupa path file string biasa
+        if (typeof val === 'string' && (val.includes('/uploads/') || val.match(/\.(jpeg|jpg|gif|png|webp)$/i))) {
+          rowValues.push(getFileUrl(val))
+        } else {
+          rowValues.push(formatCellVal(val, key))
+        }
       }
     })
 
