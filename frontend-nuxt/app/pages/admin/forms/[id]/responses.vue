@@ -317,15 +317,29 @@ const isImageFile = (val) => {
   return val.match(/\.(jpeg|jpg|gif|png|webp)$/i) || val.includes('/uploads/')
 }
 
+// const getFileUrl = (filePath) => {
+//   if (!filePath) return '#'
+//   if (filePath.startsWith('http')) return filePath
+  
+//   const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath
+//   const config = useRuntimeConfig()
+//   const baseURL = config.public.apiBase || 'http://localhost:8090'
+  
+//   return `${baseURL.replace(/\/api\/?$/, '')}/${cleanPath}`
+// }
+
 const getFileUrl = (filePath) => {
   if (!filePath) return '#'
   if (filePath.startsWith('http')) return filePath
   
   const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath
-  const config = useRuntimeConfig()
-  const baseURL = config.public.apiBase || 'http://localhost:8090'
   
-  return `${baseURL.replace(/\/api\/?$/, '')}/${cleanPath}`
+  // Mengambil hostname secara otomatis dari browser (misal: 10.126.101.52 atau localhost)
+  const protocol = window.location.protocol // 'http:' atau 'https:'
+  const hostname = window.location.hostname // '10.126.101.52'
+  const backendPort = '8090' // Sesuaikan port backend Anda jika berbeda
+  
+  return `${protocol}//${hostname}:${backendPort}/${cleanPath}`
 }
 
 const exportToExcel = () => {
