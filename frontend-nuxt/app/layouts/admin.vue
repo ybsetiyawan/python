@@ -94,6 +94,50 @@
 
       <v-spacer />
 
+      <!-- KOTAK PENCARIAN CEPAT DOKUMEN / FORM / SPREADSHEET MENGGUNAKAN V-MENU -->
+      <div class="quick-search-container d-none d-md-flex align-center mr-4">
+        <v-menu
+          v-model="showSearchResults"
+          :close-on-content-click="false"
+          location="bottom end"
+          offset="8"
+        >
+          <template v-slot:activator="{ props }">
+            <div class="search-input-wrapper" v-bind="props">
+              <v-icon size="16" class="search-icon">mdi-magnify</v-icon>
+              <input 
+                type="text" 
+                v-model="globalSearchQuery" 
+                placeholder="Cari judul atau ID dokumen..." 
+                class="global-search-input"
+              />
+              <span v-if="globalSearchQuery" @click="clearSearch" class="clear-search-btn">&times;</span>
+            </div>
+          </template>
+
+          <!-- Dropdown Hasil Pencarian Aman dari Terpotong -->
+          <v-card class="elevation-6 rounded-xl pa-2" width="340">
+            <div v-if="searchResults.length > 0">
+              <div 
+                v-for="item in searchResults" 
+                :key="item.id" 
+                class="search-result-row"
+                @click="selectSearchResult(item)"
+              >
+                <div class="result-info">
+                  <span class="result-title">{{ item.title }}</span>
+                  <span class="result-type">{{ item.type === 'spreadsheet' ? '📊 Spreadsheet' : '📝 Formulir' }}</span>
+                </div>
+                <span class="result-id">ID: {{ item.id.substring(0, 6) }}...</span>
+              </div>
+            </div>
+            <div v-else class="text-center py-3 text-slate-400 text-caption">
+              Tidak ada dokumen ditemukan
+            </div>
+          </v-card>
+        </v-menu>
+      </div>
+
       <!-- USER INFO RIGHT -->
       <div class="d-flex align-center">
         <v-avatar size="38" color="indigo-lighten-5" class="mr-3 border-indigo-subtle">
@@ -181,10 +225,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter, useRoute, useNuxtApp } from "#imports";
 import { useAuth } from "~~/app/composables/useAuth";
-import { watch } from "vue";
 
 const showExportDialog = ref(false);
 const exportPassword = ref("");
@@ -195,10 +238,13 @@ const route = useRoute();
 const { logout: authLogout } = useAuth();
 const drawer = ref(true);
 const userName = ref("Guest");
-const isLoggingOut = ref(false); // State animasi geser ke kanan saat logout
+const isLoggingOut = ref(false);
 
 const menus = ref<any[]>([]);
 const menuLoading = ref(true);
+const globalSearchQuery = ref("");
+const searchResults = ref<any[]>([]);
+const showSearchResults = ref(false);
 
 const snackbar = ref({
   show: false,
@@ -216,6 +262,30 @@ watch(
   },
   { immediate: true }
 );
+
+// Watcher reaktif pencarian global
+watch(globalSearchQuery, async (newQuery) => {
+  if (!newQuery || !newQuery.trim()) {
+    searchResults.value = [];
+    showSearchResults.value = false;
+    return;
+  }
+
+  try {
+    const { $api } = useNuxtApp();
+    const res: any = await $api(`/workspace/search?q=${encodeURIComponent(newQuery.trim())}`).catch(() => null);
+    
+    const rawData = res?.data || res?.results || res || [];
+    const list = Array.isArray(rawData) ? rawData : (rawData.data || []);
+    
+    searchResults.value = Array.isArray(list) ? list : [];
+    showSearchResults.value = true;
+  } catch (err) {
+    console.error("Pencarian gagal:", err);
+    searchResults.value = [];
+    showSearchResults.value = false;
+  }
+});
 
 function notify(message: string, color: string = "success") {
   snackbar.value.text = message;
@@ -286,10 +356,7 @@ const userInitials = computed(() => {
 });
 
 function logout() {
-  // Aktifkan animasi geser ke kanan
   isLoggingOut.value = true;
-
-  // Beri jeda 500ms untuk efek animasi sebelum membersihkan sesi dan pindah ke halaman login
   setTimeout(() => {
     authLogout();
   }, 500);
@@ -332,6 +399,19 @@ async function exportExcel() {
     exportLoading.value = false;
   }
 }
+
+const selectSearchResult = (item: any) => {
+  showSearchResults.value = false;
+  globalSearchQuery.value = "";
+  const targetPath = item.type === 'spreadsheet' ? `/admin/spreadsheets/${item.id}` : `/admin/forms/${item.id}`;
+  router.push(targetPath);
+};
+
+const clearSearch = () => {
+  globalSearchQuery.value = "";
+  searchResults.value = [];
+  showSearchResults.value = false;
+};
 </script>
 
 <style scoped>
@@ -341,7 +421,6 @@ async function exportExcel() {
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
 }
 
-/* Efek transisi layar bergeser mulus ke arah KANAN saat logout */
 .slide-out-right {
   transform: translateX(100%);
   opacity: 0;
@@ -385,7 +464,6 @@ async function exportExcel() {
   opacity: 0.8;
 }
 
-/* Style Breadcrumb Header di Top Bar */
 .breadcrumb-container {
   display: flex;
   align-items: center;
@@ -413,4 +491,58 @@ async function exportExcel() {
   background: #cbd5e1;
   border-radius: 10px;
 }
+
+/* Container Utama Pencarian */
+.quick-search-container {
+  position: relative;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 6px 12px;
+  width: 260px;
+  transition: all 0.2s;
+  cursor: text;
+}
+.search-input-wrapper:focus-within {
+  background: #fff;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  width: 300px;
+}
+.search-icon { color: #64748b; margin-right: 8px; }
+.global-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  width: 100%;
+  color: #0f172a;
+}
+.clear-search-btn {
+  cursor: pointer;
+  color: #94a3b8;
+  font-weight: bold;
+  padding: 0 4px;
+}
+.clear-search-btn:hover { color: #0f172a; }
+
+.search-result-row {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s;
+}
+.search-result-row:hover { background: #f8fafc; }
+.result-title { font-size: 13px; font-weight: 600; color: #0f172a; display: block; }
+.result-type { font-size: 11px; color: #64748b; }
+.result-id { font-size: 11px; background: #eef2ff; color: #4f46e5; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
 </style>

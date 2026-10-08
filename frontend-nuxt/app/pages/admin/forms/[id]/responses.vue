@@ -337,9 +337,9 @@ const getFileUrl = (filePath) => {
   // Mengambil hostname secara otomatis dari browser (misal: 10.126.101.52 atau localhost)
   const protocol = window.location.protocol // 'http:' atau 'https:'
   const hostname = window.location.hostname // '10.126.101.52'
-  const backendPort = '8090' // Sesuaikan port backend Anda jika berbeda
+   // Sesuaikan port backend Anda jika berbeda
   
-  return `${protocol}//${hostname}:${backendPort}/${cleanPath}`
+  return `${protocol}//${hostname}/${cleanPath}`
 }
 
 // const exportToExcel = () => {

@@ -51,11 +51,32 @@
     <v-card class="rounded-2xl border elevation-0 slide-up delay-1">
       <v-data-table
         :headers="headers"
-        :items="users"
+        :items="filteredUsers"
+        :search="searchQuery"
         :loading="loading"
         class="custom-table"
         no-data-text="Belum ada data pengguna sistem"
       >
+        <!-- Top Search Bar Slot -->
+        <template v-slot:top>
+          <div class="px-4 pt-4 pb-2 d-flex justify-space-between align-center flex-wrap" style="gap: 12px;">
+            <v-text-field
+              v-model="searchQuery"
+              prepend-inner-icon="mdi-magnify"
+              label="Cari nama atau email pengguna..."
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+              style="max-width: 340px;"
+              class="rounded-lg"
+            ></v-text-field>
+            <div class="text-caption font-weight-bold text-slate-600">
+              Total: <strong>{{ filteredUsers.length }}</strong> Pengguna
+            </div>
+          </div>
+        </template>
+
         <!-- Kolom Nama -->
         <template v-slot:item.name="{ item }">
           <div class="d-flex align-center py-2">
@@ -66,7 +87,6 @@
             </v-avatar>
             <div>
               <span class="d-block font-weight-semibold text-slate-900">{{ item.name }}</span>
-              <!-- <span class="d-block text-caption text-slate-500">ID: {{ item.id.substring(0, 8) }}...</span> -->
             </div>
           </div>
         </template>
@@ -150,7 +170,6 @@
             ></v-text-field>
           </div>
 
-          <!-- Password hanya wajib diisi saat tambah user baru -->
           <div v-if="!dialog.isEdit" class="mb-3">
             <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Password Awal</label>
             <v-text-field
@@ -326,7 +345,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useNuxtApp } from '#imports'
 
 definePageMeta({ 
@@ -340,6 +359,7 @@ const users = ref<any[]>([])
 const loading = ref(true)
 const saving = ref(false)
 const deleting = ref(false)
+const searchQuery = ref('')
 
 const toast = reactive({
   show: false,
@@ -410,6 +430,16 @@ const fetchUsers = async () => {
     loading.value = false
   }
 }
+
+// Filter pencarian data pengguna
+const filteredUsers = computed(() => {
+  if (!searchQuery.value) return users.value
+  const q = searchQuery.value.toLowerCase()
+  return users.value.filter(item => 
+    item.name?.toLowerCase().includes(q) ||
+    item.email?.toLowerCase().includes(q)
+  )
+})
 
 const openAddDialog = () => {
   dialog.isEdit = false
@@ -499,7 +529,6 @@ const processUploadCSV = async () => {
         return
       }
 
-      // Tambahkan tanda non-null (!) atau pengecekan aman
       const headerLine = lines[0]
       if (!headerLine) return
 
@@ -649,20 +678,6 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-}
-
-.user-management-page .system-badge {
-  background: #eef2ff;
-  color: #4f46e5;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 6px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
 }
 
 .user-management-page .header-info h1 {

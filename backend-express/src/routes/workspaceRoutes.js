@@ -21,4 +21,27 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
   }
 })
 
+// -------------------------------------------------------------
+// GET /api/workspace/search?q=keyword (Pencarian Cepat Dokumen Global)
+// -------------------------------------------------------------
+router.get('/search', authMiddleware, async (req, res) => {
+  try {
+    const keyword = req.query.q || ''
+    if (!keyword.trim()) {
+      return res.json({ success: true, data: [] })
+    }
+
+    const userId = req.user?.id || req.user?.userId || null
+    const results = await WorkspaceRepository.searchDocuments(keyword, userId)
+
+    return res.json({
+      success: true,
+      data: results
+    })
+  } catch (error) {
+    console.error('Error searching workspace documents:', error)
+    return res.status(500).json({ success: false, message: error.message })
+  }
+})
+
 module.exports = router

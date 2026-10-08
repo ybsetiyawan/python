@@ -4,7 +4,6 @@
     <!-- TOP HEADER -->
     <div class="page-header slide-up">
       <div class="header-info">
-        
         <h1>Manajemen Menu Navigasi & Hak Akses</h1>
         <p>Kelola daftar modul, deskripsi kartu dashboard, badge text, palet warna serasi, urutan tampil, dan hak akses user.</p>
       </div>
@@ -47,11 +46,32 @@
     <v-card class="rounded-2xl border elevation-0 slide-up delay-1 table-card-wrapper">
       <v-data-table
         :headers="headers"
-        :items="menus"
+        :items="filteredMenus"
+        :search="searchQuery"
         :loading="loading"
         class="custom-table"
         no-data-text="Belum ada data menu sistem"
       >
+        <!-- Top Search Bar Slot -->
+        <template v-slot:top>
+          <div class="px-4 pt-4 pb-2 d-flex justify-space-between align-center flex-wrap" style="gap: 12px;">
+            <v-text-field
+              v-model="searchQuery"
+              prepend-inner-icon="mdi-magnify"
+              label="Cari nama menu, path, atau badge..."
+              variant="outlined"
+              density="compact"
+              hide-details
+              clearable
+              style="max-width: 340px;"
+              class="rounded-lg"
+            ></v-text-field>
+            <div class="text-caption font-weight-bold text-slate-600">
+              Total: <strong>{{ filteredMenus.length }}</strong> Menu
+            </div>
+          </div>
+        </template>
+
         <!-- Kolom Urutan -->
         <template v-slot:item.sort_order="{ item }">
           <span class="font-weight-bold text-slate-700 pl-2">{{ item.sort_order }}</span>
@@ -391,7 +411,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useNuxtApp } from '#imports'
 
 definePageMeta({ 
@@ -406,6 +426,7 @@ const users = ref<any[]>([])
 const loading = ref(true)
 const saving = ref(false)
 const deleting = ref(false)
+const searchQuery = ref('')
 
 const toast = reactive({
   show: false,
@@ -468,7 +489,7 @@ const form = reactive({
 const selectPalette = (palette: any) => {
   form.icon_bg = palette.icon_bg
   form.badge_text = palette.badge_text
-  form.chip_color = palette.chip_color // Otomatis mengikuti warna palet yang sama
+  form.chip_color = palette.chip_color
 }
 
 const accessDialog = reactive({
@@ -498,6 +519,18 @@ const fetchMenus = async () => {
     loading.value = false
   }
 }
+
+// Filter pencarian data menu
+const filteredMenus = computed(() => {
+  if (!searchQuery.value) return menus.value
+  const q = searchQuery.value.toLowerCase()
+  return menus.value.filter(item => 
+    item.name?.toLowerCase().includes(q) ||
+    item.path?.toLowerCase().includes(q) ||
+    item.badge_text?.toLowerCase().includes(q) ||
+    item.description?.toLowerCase().includes(q)
+  )
+})
 
 const fetchUsers = async () => {
   accessDialog.loadingUsers = true
@@ -675,20 +708,6 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-}
-
-.system-badge {
-  background: #eef2ff;
-  color: #4f46e5;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 6px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
 }
 
 .header-info h1 {
