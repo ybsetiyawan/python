@@ -588,7 +588,9 @@ const handleKeydown = (e) => {
 onMounted(async () => {
   isMounted.value = true
 
-  socket = io('http://localhost:8090')
+  // ✅ KODE DIPERBAIKI: Mengambil hostname/IP secara dinamis dari browser
+  const serverHost = window.location.hostname
+  socket = io(`http://${serverHost}:8090`)
 
   socket.emit('join_spreadsheet', route.params.id)
 
