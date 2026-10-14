@@ -69,16 +69,31 @@
               </td>
               <td>{{ sub.user_email || '-' }}</td>
               
-              <!-- Isi Kolom Dinamis (Mendukung multi-foto di tabel) -->
+              <!-- Isi Kolom Dinamis (Mendukung multi-file: Gambar atau PDF) -->
               <td v-for="key in dynamicHeaders" :key="key">
                 <template v-if="getAttachmentsForTable(sub, key).length > 0">
                   <div class="table-thumb-group">
-                    <a v-for="att in getAttachmentsForTable(sub, key)" :key="att.id" :href="getFileUrl(att.file_path)" target="_blank">
-                      <img :src="getFileUrl(att.file_path)" class="table-img-thumb" :alt="att.original_filename" title="Klik untuk memperbesar" />
-                    </a>
+                    <div v-for="att in getAttachmentsForTable(sub, key)" :key="att.id">
+                      <!-- Jika PDF -->
+                      <a v-if="isPdfFile(att.file_path)" :href="getFileUrl(att.file_path)" target="_blank" class="file-pdf-link" title="Buka Dokumen PDF">
+                        📄 PDF
+                      </a>
+                      <!-- Jika Gambar -->
+                      <a v-else :href="getFileUrl(att.file_path)" target="_blank">
+                        <img :src="getFileUrl(att.file_path)" class="table-img-thumb" :alt="att.original_filename" title="Klik untuk memperbesar" />
+                      </a>
+                    </div>
                   </div>
                 </template>
 
+                <!-- Jika file tunggal berupa PDF -->
+                <template v-else-if="isPdfFile(parseResponses(sub.responses)[key])">
+                  <a :href="getFileUrl(parseResponses(sub.responses)[key])" target="_blank" class="file-pdf-link">
+                    📄 Lihat PDF
+                  </a>
+                </template>
+
+                <!-- Jika file tunggal berupa Gambar -->
                 <template v-else-if="isImageFile(parseResponses(sub.responses)[key])">
                   <a :href="getFileUrl(parseResponses(sub.responses)[key])" target="_blank">
                     <img :src="getFileUrl(parseResponses(sub.responses)[key])" class="table-img-thumb" alt="Lampiran" />
@@ -99,7 +114,7 @@
       </div>
     </div>
 
-    <!-- Modal Detail Submission (Tata letak diperbaiki agar tidak mepet topbar) -->
+    <!-- Modal Detail Submission -->
     <div v-if="selectedSubmission" class="modal-backdrop" @click.self="closeDetail">
       <div class="modal-card">
         <div class="modal-header">
@@ -138,18 +153,48 @@
               <div class="resp-value">
                 <template v-if="Array.isArray(val)">{{ val.join(', ') }}</template>
                 
-                <!-- Lampiran per Field (Mendukung multi-foto) -->
-                <template v-else-if="getAttachmentsByField(key).length > 0">
-                  <div class="attachment-thumb-grid">
-                    <div v-for="att in getAttachmentsByField(key)" :key="att.id" class="thumb-item">
-                      <a :href="getFileUrl(att.file_path)" target="_blank">
-                        <img :src="getFileUrl(att.file_path)" class="img-preview-thumb" :alt="att.original_filename" />
-                      </a>
-                      <small class="thumb-filename" :title="att.original_filename">{{ att.original_filename }}</small>
-                    </div>
-                  </div>
-                </template>
+                <!-- Lampiran per Field (Multi-file di Modal: Gambar atau PDF) -->
+<!-- Lampiran per Field (Mendukung multi-file: Gambar atau PDF) -->
+<template v-else-if="getAttachmentsByField(key).length > 0">
+  <div class="attachment-thumb-grid">
+    <div v-for="att in getAttachmentsByField(key)" :key="att.id" class="thumb-item">
+      <!-- Jika PDF: Tampilkan Kotak Dokumen PDF -->
+      <a v-if="isPdfFile(att.file_path)" :href="getFileUrl(att.file_path)" target="_blank" class="pdf-card-thumb" title="Klik untuk membuka PDF">
+        <div class="pdf-card-icon">📄</div>
+        <span class="pdf-card-label">PDF</span>
+      </a>
+      <!-- Jika Gambar: Tampilkan Thumbnail Gambar -->
+      <template v-else>
+        <a :href="getFileUrl(att.file_path)" target="_blank">
+          <img :src="getFileUrl(att.file_path)" class="img-preview-thumb" :alt="att.original_filename" />
+        </a>
+      </template>
+      <small class="thumb-filename" :title="att.original_filename">{{ att.original_filename }}</small>
+    </div>
+  </div>
+</template>
 
+<!-- Jika file tunggal berupa PDF -->
+<template v-else-if="isPdfFile(val)">
+  <div class="attachment-thumb-grid">
+    <div class="thumb-item">
+      <a :href="getFileUrl(val)" target="_blank" class="pdf-card-thumb" title="Klik untuk membuka PDF">
+        <div class="pdf-card-icon">📄</div>
+        <span class="pdf-card-label">PDF</span>
+      </a>
+      <small class="thumb-filename" :title="val.split('/').pop()">{{ val.split('/').pop() }}</small>
+    </div>
+  </div>
+</template>
+
+<!-- Jika file tunggal berupa Gambar -->
+<template v-else-if="isImageFile(val)">
+  <a :href="getFileUrl(val)" target="_blank">
+    <img :src="getFileUrl(val)" class="img-preview-thumb" alt="Lampiran Gambar" />
+  </a>
+</template>
+
+                <!-- Jika file tunggal berupa Gambar -->
                 <template v-else-if="isImageFile(val)">
                   <a :href="getFileUrl(val)" target="_blank">
                     <img :src="getFileUrl(val)" class="img-preview-thumb" alt="Lampiran Gambar" />
@@ -172,7 +217,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter, useNuxtApp } from '#imports'
+import { useRoute, useRouter, useNuxtApp, useRuntimeConfig } from '#imports'
 import { useAuth } from '~~/app/composables/useAuth'
 
 definePageMeta({
@@ -304,87 +349,55 @@ const parseResponses = (responses) => {
   return responses
 }
 
+// Format Tanggal disesuaikan dengan zona waktu Asia/Jakarta (WIB) dan penanganan format database
 const formatDate = (dateString) => {
   if (!dateString) return '-'
-  return new Date(dateString).toLocaleString('id-ID', {
+  
+  let isoString = dateString
+  if (typeof dateString === 'string' && dateString.includes(' ')) {
+    isoString = dateString.replace(' ', 'T')
+  }
+
+  const date = new Date(isoString)
+  if (isNaN(date.getTime())) return dateString
+
+  return date.toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
     dateStyle: 'medium',
     timeStyle: 'short'
   })
 }
 
-const isImageFile = (val) => {
+// Cek apakah file berupa PDF
+const isPdfFile = (val) => {
   if (typeof val !== 'string') return false
-  return val.match(/\.(jpeg|jpg|gif|png|webp)$/i) || val.includes('/uploads/')
+  return val.match(/\.pdf$/i) || val.toLowerCase().includes('.pdf')
 }
 
-// const getFileUrl = (filePath) => {
-//   if (!filePath) return '#'
-//   if (filePath.startsWith('http')) return filePath
-  
-//   const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath
-//   const config = useRuntimeConfig()
-//   const baseURL = config.public.apiBase || 'http://localhost:8090'
-  
-//   return `${baseURL.replace(/\/api\/?$/, '')}/${cleanPath}`
-// }
+// Cek apakah file berupa Gambar (Mengecualikan PDF)
+const isImageFile = (val) => {
+  if (typeof val !== 'string') return false
+  if (isPdfFile(val)) return false
+  return val.match(/\.(jpeg|jpg|gif|png|webp)$/i) || val.includes('/uploads/')
+}
 
 const getFileUrl = (filePath) => {
   if (!filePath) return '#'
   if (filePath.startsWith('http')) return filePath
+
+  const cleanPath = filePath.startsWith('/') ? filePath : '/' + filePath
   
-  const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath
+  const config = useRuntimeConfig()
+  const fileBase = config.public.fileBase
   
-  // Mengambil hostname secara otomatis dari browser (misal: 10.126.101.52 atau localhost)
-  const protocol = window.location.protocol // 'http:' atau 'https:'
-  const hostname = window.location.hostname // '10.126.101.52'
-   // Sesuaikan port backend Anda jika berbeda
+  if (fileBase) {
+    return `${fileBase.replace(/\/$/, '')}${cleanPath}`
+  }
   
-  return `${protocol}//${hostname}/${cleanPath}`
+  const protocol = window.location.protocol
+  const hostname = window.location.hostname
+  return `${protocol}//${hostname}${cleanPath}`
 }
-
-// const exportToExcel = () => {
-//   if (submissions.value.length === 0) return
-
-//   const headers = ['No', 'Waktu Kirim', 'Nama Pengisi', 'Email', ...dynamicHeaders.value.map(k => getFieldLabel(k)), 'IP Address']
-//   let csvContent = "data:text/csv;charset=utf-8,"
-//   csvContent += headers.map(h => `"${h}"`).join(",") + "\r\n"
-
-//   submissions.value.forEach((sub, index) => {
-//     const parsed = parseResponses(sub.responses)
-    
-//     const rowValues = [
-//       index + 1,
-//       formatDate(sub.created_at),
-//       sub.user_name || 'Guest',
-//       sub.user_email || '-'
-//     ]
-
-//     dynamicHeaders.value.forEach(key => {
-//       const fieldAttachments = sub.attachments ? sub.attachments.filter(att => att.field_id === key) : []
-      
-//       if (fieldAttachments.length > 0) {
-//         const urls = fieldAttachments.map(att => getFileUrl(att.file_path))
-//         rowValues.push(urls.join(', '))
-//       } else {
-//         const val = parsed[key]
-//         rowValues.push(formatCellVal(val, key))
-//       }
-//     })
-
-//     rowValues.push(sub.ip_address || '-' )
-
-//     const formattedRow = rowValues.map(val => `"${(val || '').toString().replace(/"/g, '""')}"`)
-//     csvContent += formattedRow.join(",") + "\r\n"
-//   })
-
-//   const encodedUri = encodeURI(csvContent)
-//   const link = document.createElement("a")
-//   link.setAttribute("href", encodedUri)
-//   link.setAttribute("download", `Laporan-Lengkap-Responses-${formId}.csv`)
-//   document.body.appendChild(link)
-//   link.click()
-//   document.body.removeChild(link)
-// }
 
 const exportToExcel = () => {
   if (submissions.value.length === 0) return
@@ -407,13 +420,11 @@ const exportToExcel = () => {
       const fieldAttachments = sub.attachments ? sub.attachments.filter(att => att.field_id === key) : []
       
       if (fieldAttachments.length > 0) {
-        // PERBAIKAN DI SINI: Panggil getFileUrl agar link download menggunakan IP/Domain server secara lengkap
         const urls = fieldAttachments.map(att => getFileUrl(att.file_path))
         rowValues.push(urls.join(', '))
       } else {
         const val = parsed[key]
-        // Cek jika val berupa path file string biasa
-        if (typeof val === 'string' && (val.includes('/uploads/') || val.match(/\.(jpeg|jpg|gif|png|webp)$/i))) {
+        if (typeof val === 'string' && (val.includes('/uploads/') || val.match(/\.(jpeg|jpg|gif|png|webp|pdf)$/i))) {
           rowValues.push(getFileUrl(val))
         } else {
           rowValues.push(formatCellVal(val, key))
@@ -461,18 +472,101 @@ const exportToExcel = () => {
 .responses-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
 
 /* Styling Kolom Aksi di Kiri & Tombol Icon Mata */
-.col-action { width: 60px; min-width: 60px; text-align: center; }
-.btn-icon-detail { background: #f1f5f9; border: 1px solid #cbd5e1; width: 34px; height: 34px; border-radius: 8px; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
-.btn-icon-detail:hover { background: #e2e8f0; border-color: #94a3b8; transform: scale(1.05); }
+.col-action { width: 90px; min-width: 90px; text-align: center; }
 
-/* Styling untuk multi-foto berderet di tabel */
+.btn-action-detail {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.btn-action-detail:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.action-icon { font-size: 14px; }
+.action-text { font-size: 11px; font-weight: 600; }
+
+/* Styling Thumbnail Gambar & PDF di Tabel */
 .table-thumb-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; max-width: 250px; }
 .table-img-thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; transition: transform 0.2s; }
 .table-img-thumb:hover { transform: scale(1.08); }
 
-/* Modal Styling - Diperbarui agar tidak mepet dengan top bar & memiliki padding aman */
-.modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.55); backdrop-filter: blur(3px); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 40px 20px; box-sizing: border-box; }
-.modal-card { background: #fff; width: 100%; max-width: 750px; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; max-height: calc(100vh - 80px); margin-top: 20px; }
+.file-pdf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e293b;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.file-pdf-link:hover { background: #e2e8f0; color: #0f172a; }
+
+.file-pdf-link-modal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e40af;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.file-pdf-link-modal:hover { background: #dbeafe; }
+
+/* Modal Styling */
+.modal-backdrop { 
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  width: 100vw; 
+  height: 100vh; 
+  background: rgba(0, 0, 0, 0.6); 
+  backdrop-filter: blur(4px); 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  z-index: 99999; 
+  padding: 20px; 
+  box-sizing: border-box; 
+}
+
+.modal-card { 
+  background: #fff; 
+  width: 100%; 
+  max-width: 800px; 
+  border-radius: 16px; 
+  overflow: hidden; 
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); 
+  display: flex; 
+  flex-direction: column; 
+  max-height: 90vh; 
+  margin: auto;
+}
+
 .modal-header { padding: 20px 24px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; }
 .modal-header h3 { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0; }
 .modal-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
@@ -500,67 +594,38 @@ const exportToExcel = () => {
 .modal-footer { padding: 16px 24px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; }
 .btn-close-modal { background: #334155; color: white; border: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
 .btn-close-modal:hover { background: #1e293b; }
-/* Modal Styling - Full Screen Overlay di atas Top Bar */
-.modal-backdrop { 
-  position: fixed; 
-  top: 0; 
-  left: 0; 
-  width: 100vw; 
-  height: 100vh; 
-  background: rgba(0, 0, 0, 0.6); 
-  backdrop-filter: blur(4px); 
-  display: flex; 
-  justify-content: center; 
-  align-items: center; 
-  z-index: 99999; /* Pastikan berada di atas top bar admin */
-  padding: 20px; 
-  box-sizing: border-box; 
-}
 
-.modal-card { 
-  background: #fff; 
-  width: 100%; 
-  max-width: 800px; 
-  border-radius: 16px; 
-  overflow: hidden; 
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); 
-  display: flex; 
-  flex-direction: column; 
-  max-height: 90vh; 
-  margin: auto;
-}
-/* Styling Tombol Aksi Detail di Kolom Kiri */
-.col-action { width: 90px; min-width: 90px; text-align: center; }
-
-.btn-action-detail {
-  background: #f8fafc;
+/* Styling Kotak Kartu PDF di Modal (Menyesuaikan ukuran .img-preview-thumb) */
+.pdf-card-thumb {
+  width: 110px;
+  height: 110px;
+  border-radius: 8px;
   border: 1px solid #cbd5e1;
-  color: #334155;
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  text-decoration: none;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
-.btn-action-detail:hover {
-  background: #eff6ff;
-  border-color: #3b82f6;
-  color: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.pdf-card-thumb:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  transform: scale(1.03);
 }
 
-.action-icon {
-  font-size: 14px;
+.pdf-card-icon {
+  font-size: 36px;
+  margin-bottom: 4px;
 }
 
-.action-text {
+.pdf-card-label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
 }
 </style>
