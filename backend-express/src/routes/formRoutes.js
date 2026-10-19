@@ -77,37 +77,161 @@ const ExcelJS = require('exceljs');
 // -------------------------------------------------------------
 // GET /api/forms/:id/export-excel (Export Laporan Submission ke Excel)
 // -------------------------------------------------------------
+// router.get('/:id/export-excel', authMiddleware, async (req, res) => {
+//   try {
+//     const formId = req.params.id;
+//     const form = await FormRepository.findById(formId);
+//     if (!form) {
+//       return res.status(404).json({ success: false, message: 'Form tidak ditemukan' });
+//     }
+
+//     const submissions = await SubmissionRepository.findByFormId(formId);
+
+//     const workbook = new ExcelJS.Workbook();
+//     const worksheet = workbook.addWorksheet('Laporan Submission');
+
+//     worksheet.columns = [
+//       { header: 'No', key: 'no', width: 5 },
+//       { header: 'Tanggal Submit', key: 'created_at', width: 20 },
+//       { header: 'Nama Pengisi', key: 'user_name', width: 25 },
+//       { header: 'Email', key: 'user_email', width: 25 },
+//       { header: 'Status', key: 'status', width: 15 },
+//       { header: 'IP Address', key: 'ip_address', width: 15 }
+//     ];
+
+//     submissions.forEach((sub, index) => {
+//       worksheet.addRow({
+//         no: index + 1,
+//         created_at: sub.created_at,
+//         user_name: sub.user_name || 'Guest / Publik',
+//         user_email: sub.user_email || '-',
+//         status: sub.status,
+//         ip_address: sub.ip_address || '-'
+//       });
+//     });
+
+//     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+//     res.setHeader('Content-Disposition', `attachment; filename=Laporan-Submission-${formId}.xlsx`);
+
+//     await workbook.xlsx.write(res);
+//     res.end();
+//   } catch (error) {
+//     console.error('Error export excel:', error);
+//     return res.status(500).json({ success: false, message: error.message });
+//   }
+// });
+
 router.get('/:id/export-excel', authMiddleware, async (req, res) => {
   try {
     const formId = req.params.id;
+    // Tangkap keyword pencarian dari query frontend
+    const search = req.query.search || '';
+
     const form = await FormRepository.findById(formId);
     if (!form) {
       return res.status(404).json({ success: false, message: 'Form tidak ditemukan' });
     }
 
-    const submissions = await SubmissionRepository.findByFormId(formId);
+    // Ambil data dengan menerapkan filter search (tanpa batasan paginasi / limit besar)
+    const result = await SubmissionRepository.findByFormId(formId, { page: 1, limit: 999999, search: search });
+    const submissions = result.submissions;
+
+    const formStructure = form.structure || [];
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Laporan Submission');
 
-    worksheet.columns = [
+    const baseColumns = [
       { header: 'No', key: 'no', width: 5 },
       { header: 'Tanggal Submit', key: 'created_at', width: 20 },
       { header: 'Nama Pengisi', key: 'user_name', width: 25 },
-      { header: 'Email', key: 'user_email', width: 25 },
+      { header: 'Email', key: 'user_email', width: 25 }
+    ];
+
+    const dynamicKeys = formStructure.map(item => item.id);
+    submissions.forEach(sub => {
+      let resp = sub.responses;
+      if (typeof resp === 'string') {
+        try { resp = JSON.parse(resp); } catch { resp = {}; }
+      }
+      if (resp && typeof resp === 'object') {
+        Object.keys(resp).forEach(k => {
+          if (!dynamicKeys.includes(k)) dynamicKeys.push(k);
+        });
+      }
+    });
+
+    const getFieldLabel = (fieldId) => {
+      const found = formStructure.find(item => item.id === fieldId);
+      if (found && found.label) return found.label;
+      return fieldId.replace(/_/g, ' ').toUpperCase();
+    };
+
+    const dynamicHeaders = dynamicKeys.map(key => ({
+      header: getFieldLabel(key),
+      key: key,
+      width: 45
+    }));
+
+    worksheet.columns = [
+      ...baseColumns,
+      ...dynamicHeaders,
       { header: 'Status', key: 'status', width: 15 },
       { header: 'IP Address', key: 'ip_address', width: 15 }
     ];
 
+    const getBaseUrl = (req) => {
+      return `${req.protocol}://${req.get('host')}`;
+    };
+    const baseUrl = getBaseUrl(req);
+
     submissions.forEach((sub, index) => {
-      worksheet.addRow({
+      let resp = sub.responses;
+      if (typeof resp === 'string') {
+        try { resp = JSON.parse(resp); } catch { resp = {}; }
+      }
+
+      const formattedDate = sub.created_at ? new Date(sub.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) : '-';
+
+      const rowData = {
         no: index + 1,
-        created_at: sub.created_at,
+        created_at: formattedDate,
         user_name: sub.user_name || 'Guest / Publik',
         user_email: sub.user_email || '-',
         status: sub.status,
         ip_address: sub.ip_address || '-'
+      };
+
+      dynamicKeys.forEach(key => {
+        let val = resp[key];
+
+        if (sub.attachments && Array.isArray(sub.attachments)) {
+          const matchedAtts = sub.attachments.filter(att => att.field_id === key);
+          if (matchedAtts.length > 0) {
+            val = matchedAtts.map(att => `${baseUrl}${att.file_path}`);
+          }
+        }
+
+        if (Array.isArray(val)) {
+          rowData[key] = val.map(item => {
+            const itemStr = String(item);
+            return itemStr.startsWith('/uploads/') ? `${baseUrl}${itemStr}` : itemStr;
+          }).join(', ');
+        } else if (typeof val === 'string' && val.includes(',')) {
+          rowData[key] = val.split(',').map(item => {
+            const trimmed = item.trim();
+            return trimmed.startsWith('/uploads/') ? `${baseUrl}${trimmed}` : trimmed;
+          }).join(', ');
+        } else if (typeof val === 'string' && val.startsWith('/uploads/')) {
+          rowData[key] = `${baseUrl}${val}`;
+        } else if (typeof val === 'object' && val !== null) {
+          rowData[key] = JSON.stringify(val);
+        } else {
+          rowData[key] = val !== undefined && val !== null ? val : '-';
+        }
       });
+
+      worksheet.addRow(rowData);
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -120,7 +244,6 @@ router.get('/:id/export-excel', authMiddleware, async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 });
-
 // -------------------------------------------------------------
 // 1. POST /api/forms (Buat Template Form Baru)
 // -------------------------------------------------------------
@@ -324,30 +447,63 @@ router.put('/:id', authMiddleware, async (req, res) => {
 // -------------------------------------------------------------
 // 5. GET /api/forms/:id/submissions (Ambil Semua Daftar Jawaban Form)
 // -------------------------------------------------------------
+// router.get('/:id/submissions', authMiddleware, async (req, res) => {
+//   try {
+//     const formId = req.params.id
+
+//     const form = await FormRepository.findById(formId)
+//     if (!form) {
+//       return res.status(404).json({ success: false, message: 'Form tidak ditemukan' })
+//     }
+
+//     const submissions = await SubmissionRepository.findByFormId(formId)
+
+//     return res.json({
+//       success: true,
+//       data: {
+//         form_title: form.title,
+//         total_submissions: submissions.length,
+//         submissions: submissions
+//       }
+//     })
+//   } catch (error) {
+//     console.error('Error get submissions:', error)
+//     return res.status(500).json({ success: false, message: error.message })
+//   }
+// })
+
 router.get('/:id/submissions', authMiddleware, async (req, res) => {
   try {
-    const formId = req.params.id
+    const formId = req.params.id;
+    // Tangkap query params dari frontend (berikan nilai default jika kosong)
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
 
-    const form = await FormRepository.findById(formId)
+    const form = await FormRepository.findById(formId);
     if (!form) {
-      return res.status(404).json({ success: false, message: 'Form tidak ditemukan' })
+      return res.status(404).json({ success: false, message: 'Form tidak ditemukan' });
     }
 
-    const submissions = await SubmissionRepository.findByFormId(formId)
+    // Panggil repository dengan membawa opsi paginasi dan search
+    const result = await SubmissionRepository.findByFormId(formId, { page, limit, search });
 
     return res.json({
       success: true,
       data: {
         form_title: form.title,
-        total_submissions: submissions.length,
-        submissions: submissions
+        total_submissions: result.totalData,
+        total_pages: result.totalPages,
+        current_page: result.currentPage,
+        limit: limit,
+        submissions: result.submissions
       }
-    })
+    });
   } catch (error) {
-    console.error('Error get submissions:', error)
-    return res.status(500).json({ success: false, message: error.message })
+    console.error('Error get submissions:', error);
+    return res.status(500).json({ success: false, message: error.message });
   }
-})
+});
 
 // -------------------------------------------------------------
 // 6. GET /api/forms/submissions/:submissionId (Ambil Detail 1 Jawaban + Lampiran)

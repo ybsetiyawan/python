@@ -61,28 +61,83 @@ const SubmissionRepository = {
 
 
   // Mendapatkan riwayat jawaban beserta data user dan attachments
-  async findByFormId(formId) {
-    const sql = `
+  // async findByFormId(formId) {
+  //   const sql = `
+  //     SELECT 
+  //       fs.*,
+  //       u.name AS user_name,
+  //       u.email AS user_email
+  //     FROM form_submissions fs
+  //     LEFT JOIN users u ON fs.user_id = u.id
+  //     WHERE fs.form_id = $1 
+  //     ORDER BY fs.created_at DESC
+  //   `
+  //   const result = await pool.query(sql, [formId])
+  //   const submissions = result.rows
+
+  //   // Ambil lampiran file untuk setiap submission agar tabel bisa mendeteksi multi-foto
+  //   for (const sub of submissions) {
+  //     const attSql = `SELECT * FROM form_attachments WHERE submission_id = $1`
+  //     const attRes = await pool.query(attSql, [sub.id])
+  //     sub.attachments = attRes.rows
+  //   }
+
+  //   return submissions
+  // },
+
+  async findByFormId(formId, options = {}) {
+    const { page = 1, limit = 5, search = '' } = options;
+    const offset = (page - 1) * limit;
+
+    let baseQuery = `
+      FROM form_submissions fs
+      LEFT JOIN users u ON fs.user_id = u.id
+      WHERE fs.form_id = $1
+    `;
+    
+    const queryParams = [formId];
+    let paramIndex = 2;
+
+    // Jika ada parameter search (misal cari berdasarkan nama user, email, atau isi JSON responses)
+    if (search && search.trim() !== '') {
+      baseQuery += ` AND (u.name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex} OR fs.responses::text ILIKE $${paramIndex})`;
+      queryParams.push(`%${search.trim()}%`);
+      paramIndex++;
+    }
+
+    // 1. Hitung total data (untuk keperluan info paginasi di frontend)
+    const countSql = `SELECT COUNT(*) ${baseQuery}`;
+    const countResult = await pool.query(countSql, queryParams);
+    const totalData = parseInt(countResult.rows[0].count, 10);
+
+    // 2. Ambil data dengan Paginasi (LIMIT & OFFSET)
+    const dataSql = `
       SELECT 
         fs.*,
         u.name AS user_name,
         u.email AS user_email
-      FROM form_submissions fs
-      LEFT JOIN users u ON fs.user_id = u.id
-      WHERE fs.form_id = $1 
+      ${baseQuery}
       ORDER BY fs.created_at DESC
-    `
-    const result = await pool.query(sql, [formId])
-    const submissions = result.rows
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    queryParams.push(limit, offset);
 
-    // Ambil lampiran file untuk setiap submission agar tabel bisa mendeteksi multi-foto
+    const result = await pool.query(dataSql, queryParams);
+    const submissions = result.rows;
+
+    // Ambil lampiran file untuk setiap submission
     for (const sub of submissions) {
-      const attSql = `SELECT * FROM form_attachments WHERE submission_id = $1`
-      const attRes = await pool.query(attSql, [sub.id])
-      sub.attachments = attRes.rows
+      const attSql = `SELECT * FROM form_attachments WHERE submission_id = $1`;
+      const attRes = await pool.query(attSql, [sub.id]);
+      sub.attachments = attRes.rows;
     }
 
-    return submissions
+    return {
+      submissions,
+      totalData,
+      totalPages: Math.ceil(totalData / limit),
+      currentPage: parseInt(page, 10)
+    };
   },
 
   // Mendapatkan detail submission beserta data user dan daftar lampiran filenya

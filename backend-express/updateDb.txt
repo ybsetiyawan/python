@@ -1,0 +1,28 @@
+19/10/2026
+-- Tabel untuk Audit Trail (Mencatat siapa yang mengubah data dan kapan)
+CREATE TABLE spreadsheet_audit_logs (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    spreadsheet_id uuid NOT NULL,
+    user_id uuid,
+    action_type varchar(50) NOT NULL, -- contoh: 'UPDATE_CELL', 'DELETE_ROW', 'CLEAR_FORMAT'
+    details jsonb, -- menyimpan info baris, kolom, nilai lama, dan nilai baru
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(id),
+    CONSTRAINT fk_audit_spreadsheet FOREIGN KEY(spreadsheet_id) REFERENCES spreadsheets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_audit_user FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+-- Tabel untuk Proteksi Range / Baris oleh Administrator
+CREATE TABLE spreadsheet_protected_ranges (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    spreadsheet_id uuid NOT NULL,
+    sheet_name varchar(100) NOT NULL,
+    start_row int NOT NULL,
+    end_row int NOT NULL,
+    start_col int NOT NULL,
+    end_col int NOT NULL,
+    protected_by uuid,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(id),
+    CONSTRAINT fk_protected_spreadsheet FOREIGN KEY(spreadsheet_id) REFERENCES spreadsheets(id) ON DELETE CASCADE
+);

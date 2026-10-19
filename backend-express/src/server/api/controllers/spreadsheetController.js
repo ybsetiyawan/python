@@ -4,7 +4,17 @@ const SpreadsheetRepository = require("../../repository/spreadsheetRepository");
 class SpreadsheetController {
   static async getSpreadsheets(req, res) {
     try {
-      const sheets = await SpreadsheetRepository.findAll();
+      // Jika ingin memfilter berdasarkan user yang login (atau parameter query creatorId), 
+      // Anda bisa mengambilnya dari req.user?.id atau req.query.creatorId.
+      const userId = req.user?.id || req.query.creatorId;
+
+      let sheets;
+      if (userId) {
+        sheets = await SpreadsheetRepository.findByCreator(userId);
+      } else {
+        sheets = await SpreadsheetRepository.findAll();
+      }
+
       return res.status(200).json({ success: true, data: sheets });
     } catch (err) {
       console.error("Error getSpreadsheets:", err);
@@ -83,11 +93,11 @@ class SpreadsheetController {
     }
   }
 
-  // FITUR BARU: Endpoint untuk menambah baris secara aman (Append-Only) bagi 141 klien
+  // Endpoint untuk menambah baris secara aman (Append-Only)
   static async appendRow(req, res) {
     try {
       const { id } = req.params;
-      const { sheetName, rowData } = req.body; // rowData berupa array sel, misal: ["Cabang A", "100", "Aktif"]
+      const { sheetName, rowData } = req.body;
 
       if (!sheetName || !rowData || !Array.isArray(rowData)) {
         return res.status(400).json({ success: false, error: "Nama sheet dan data baris (array) wajib disertakan" });
@@ -121,6 +131,66 @@ class SpreadsheetController {
       });
     } catch (err) {
       console.error("Error deleteSpreadsheet:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  // ==========================================
+  // 🔒 FITUR BARU: PROTECTED RANGES CONTROLLER
+  // ==========================================
+
+  static async getProtectedRanges(req, res) {
+    try {
+      const { id } = req.params;
+      const ranges = await SpreadsheetRepository.getProtectedRanges(id);
+      return res.status(200).json({ success: true, data: ranges });
+    } catch (err) {
+      console.error("Error getProtectedRanges:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async createProtectedRange(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || req.body.protected_by;
+      const { sheet_name, start_row, end_row, start_col, end_col } = req.body;
+
+      if (!sheet_name || start_row === undefined || end_row === undefined || start_col === undefined || end_col === undefined) {
+        return res.status(400).json({ success: false, error: "Parameter rentang sel tidak lengkap" });
+      }
+
+      const newRange = await SpreadsheetRepository.createProtectedRange({
+        spreadsheet_id: id,
+        sheet_name,
+        start_row,
+        end_row,
+        start_col,
+        end_col,
+        protected_by: userId || null
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: "Rentang sel berhasil diproteksi",
+        data: newRange
+      });
+    } catch (err) {
+      console.error("Error createProtectedRange:", err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async deleteProtectedRange(req, res) {
+    try {
+      const { rangeId } = req.params;
+      await SpreadsheetRepository.deleteProtectedRange(rangeId);
+      return res.status(200).json({
+        success: true,
+        message: "Proteksi rentang berhasil dilepaskan"
+      });
+    } catch (err) {
+      console.error("Error deleteProtectedRange:", err);
       return res.status(500).json({ success: false, error: err.message });
     }
   }
