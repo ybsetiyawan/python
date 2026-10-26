@@ -1,5 +1,5 @@
 <template>
-  <div class="spreadsheet-container">
+  <div class="spreadsheet-container-full">
     <!-- Jika Spreadsheet Tidak Ditemukan / Sudah Dihapus -->
     <div v-if="isNotFound" class="not-found-card">
       <div class="not-found-icon">🗑️</div>
@@ -17,6 +17,12 @@
           <div class="title-input-group">
             <input type="text" v-model="spreadsheet.title" class="sheet-title-input" placeholder="Judul Spreadsheet..." />
             <span class="badge-mode">Live Spreadsheet (Collab)</span>
+            
+            <!-- 💡 Menampilkan Info User yang Sedang Login di Sebelah Badge Collab -->
+            <div v-if="currentUser.name" class="current-user-pill" :title="'Login sebagai: ' + currentUser.name">
+              <span class="user-avatar-dot"></span>
+              <span class="user-name-text">{{ currentUser.name }}</span>
+            </div>
           </div>
         </div>
         <div class="header-right">
@@ -193,7 +199,7 @@ registerAllModules()
 registerAllCellTypes()
 
 definePageMeta({
-  layout: 'admin',
+  layout: false, // 💡 Menonaktifkan layout admin agar halaman memenuhi layar penuh (full-width)
 })
 
 const route = useRoute()
@@ -211,7 +217,6 @@ const isNotFound = ref(false)
 let lastSelectedRange = { startRow: 0, startCol: 0, endRow: 0, endCol: 0 }
 const isFormulaFocused = ref(false)
 
-// Variabel Socket.io & Lock Baris Real-time
 let socket = null
 let autoSaveTimer = null
 const lockedRows = ref({})
@@ -224,18 +229,18 @@ const currentSheetName = ref('Sheet1')
 const allSheets = ref({
   'Sheet1': {
     rows: Array.from({ length: 60 }, () => Array(20).fill('')),
-    styles: {}
+    styles: {},
+    rowOwners: {}
   }
 })
 
-// State untuk Modal Proteksi Rentang
 const showProtectModal = ref(false)
 const protectedRanges = ref([])
 
 // Computed: Mengecek apakah user yang sedang login adalah pemilik (owner) spreadsheet
 const isOwner = computed(() => {
   if (!spreadsheet.value.created_by || !currentUser.value.id) return false
-  return spreadsheet.value.created_by === currentUser.value.id
+  return String(spreadsheet.value.created_by) === String(currentUser.value.id)
 })
 
 const availableFormulas = [
@@ -251,6 +256,7 @@ const availableFormulas = [
 
 const filteredFormulas = ref([])
 const showSuggestions = ref(false)
+const rowOwners = ref({})
 
 const onFormulaInput = () => {
   const val = formulaInput.value.trim()
@@ -289,15 +295,28 @@ const hotSettings = ref({
   manualColumnResize: true,
   manualRowResize: true,
   stretchH: 'all',
-  height: '560px',
+  height: '700px', // 💡 Diperbesar sedikit agar lebih leluasa di layar penuh
   width: '100%',
   formulas: {
     engine: hyperFormulaInstance
   },
   afterChange: (changes, source) => {
     if (source === 'loadData' || !changes) return
-    saveStatus.value = 'Menyimpan otomatis...'
 
+    const myId = currentUser.value?.id
+    if (myId && !isOwner.value) {
+      for (const [row] of changes) {
+        const rowStr = String(row)
+        if (!rowOwners.value[rowStr]) {
+          rowOwners.value[rowStr] = myId
+        }
+      }
+      if (allSheets.value[currentSheetName.value]) {
+        allSheets.value[currentSheetName.value].rowOwners = { ...rowOwners.value }
+      }
+    }
+
+    saveStatus.value = 'Menyimpan otomatis...'
     if (autoSaveTimer) clearTimeout(autoSaveTimer)
     autoSaveTimer = setTimeout(() => {
       saveData(true)
@@ -320,8 +339,8 @@ const hotSettings = ref({
       activeRowLockedByMe = null;
     }
 
-    if (lockedRows.value[targetRow] && lockedRows.value[targetRow].userId !== currentUser.value.id) {
-      warningMessage.value = `Baris ${targetRow + 1} sedang disunting oleh ${lockedRows.value[targetRow].userName}! Silakan gunakan baris kosong di bawahnya.`;
+    if (lockedRows.value[targetRow] && String(lockedRows.value[targetRow].userId) !== String(currentUser.value.id)) {
+      warningMessage.value = `Baris ${targetRow + 1} sedang disunting oleh ${lockedRows.value[targetRow].userName}!`;
       
       if (warningTimeout) clearTimeout(warningTimeout);
       warningTimeout = setTimeout(() => {
@@ -352,17 +371,22 @@ const hotSettings = ref({
       formulaInput.value = val !== null && val !== undefined ? String(val) : '';
     }
   },
-  cells: (row, column) => {
+cells: (row, column) => {
     const cellProperties = {}
 
-    // Cek apakah baris ini sedang dikunci user lain secara real-time
-    if (lockedRows.value[row] && lockedRows.value[row].userId !== currentUser.value.id) {
-      cellProperties.className = 'row-locked-by-other'
-      cellProperties.readOnly = true
+    // 1. Jika user adalah pemilik utama spreadsheet, berikan akses penuh
+    if (isOwner.value) {
+      cellProperties.className = ''
+      cellProperties.readOnly = false
       return cellProperties
     }
 
-    // Cek apakah ada proteksi rentang dari Owner
+    const myId = currentUser.value?.id
+    const rowStr = String(row)
+    let ownerId = rowOwners.value[rowStr] || rowOwners.value[row]
+
+    // 2. 🛡️ CEK PROTEKSI ADMIN (Protected Ranges)
+    // Otomatis mengunci kolom-kolom master (seperti Nama, Alamat, PIC) yang dikunci oleh Owner
     const isProtected = protectedRanges.value.some(range => {
       return range.sheet_name === currentSheetName.value &&
              row >= range.start_row && row <= range.end_row &&
@@ -375,20 +399,92 @@ const hotSettings = ref({
       return cellProperties
     }
 
-    // Jika tidak terkunci/diproteksi, bersihkan dari sisa kelas lock
+    // 3. Cek kunci real-time WebSocket (jika sedang disunting user lain)
+    if (lockedRows.value[row] && String(lockedRows.value[row].userId) !== String(myId)) {
+      cellProperties.className = 'row-locked-by-other'
+      cellProperties.readOnly = true
+      return cellProperties
+    }
+
+    // 4. 🛡️ KONTROL KEPEMILIKAN BARIS UNTUK AREA USER
+    // Jika baris ini sudah diklaim/diisi oleh user lain di area isian mereka, kunci untuk user lain!
+    if (ownerId && String(ownerId) !== String(myId)) {
+      cellProperties.className = 'row-owned-by-other'
+      cellProperties.readOnly = true
+      return cellProperties
+    }
+
     cellProperties.className = ''
+    cellProperties.readOnly = false
+    return cellProperties
+  },
+  beforeRemoveRow: (index, amount) => {
+    if (isOwner.value) return true;
+
+    const myId = currentUser.value?.id;
+    for (let i = 0; i < amount; i++) {
+      const rowIndex = index + i;
+      const ownerId = rowOwners.value[String(rowIndex)] || rowOwners.value[rowIndex];
+      const isMyRow = ownerId && myId && String(ownerId) === String(myId);
+
+      if (ownerId && !isMyRow) {
+        alert('Aksi ditolak! Anda tidak dapat menghapus baris milik pengguna lain.');
+        return false;
+      }
+    }
+  },
+cells: (row, column) => {
+    const cellProperties = {}
+
+    // 1. Jika user adalah pemilik utama spreadsheet, berikan akses penuh
+    if (isOwner.value) {
+      cellProperties.className = ''
+      cellProperties.readOnly = false
+      return cellProperties
+    }
+
+    const myId = currentUser.value?.id
+    const rowStr = String(row)
+    let ownerId = rowOwners.value[rowStr] || rowOwners.value[row]
+
+    // 2. 🛡️ CEK PROTEKSI ADMIN (Protected Ranges)
+    // Otomatis mengunci kolom-kolom master (seperti Nama, Alamat, PIC) yang dikunci oleh Owner
+    const isProtected = protectedRanges.value.some(range => {
+      return range.sheet_name === currentSheetName.value &&
+             row >= range.start_row && row <= range.end_row &&
+             column >= range.start_col && column <= range.end_col
+    })
+
+    if (isProtected) {
+      cellProperties.className = 'cell-protected-range'
+      cellProperties.readOnly = true
+      return cellProperties
+    }
+
+    // 3. Cek kunci real-time WebSocket (jika sedang disunting user lain)
+    if (lockedRows.value[row] && String(lockedRows.value[row].userId) !== String(myId)) {
+      cellProperties.className = 'row-locked-by-other'
+      cellProperties.readOnly = true
+      return cellProperties
+    }
+
+    // 4. 🛡️ KONTROL KEPEMILIKAN BARIS UNTUK AREA USER
+    // Jika baris ini sudah diklaim/diisi oleh user lain di area isian mereka, kunci untuk user lain!
+    if (ownerId && String(ownerId) !== String(myId)) {
+      cellProperties.className = 'row-owned-by-other'
+      cellProperties.readOnly = true
+      return cellProperties
+    }
+
+    cellProperties.className = ''
+    cellProperties.readOnly = false
     return cellProperties
   },
   contextMenu: {
     items: {
       'protect_range_menu': {
         name: '🔒 Proteksi Rentang Ini',
-        hidden: function() {
-          return !isOwner.value;
-        },
-        callback: function() {
-          openProtectModal();
-        }
+        hidden: function() { return !isOwner.value; }
       },
       'sep_protect': {
         hidden: function() { return !isOwner.value; },
@@ -396,68 +492,69 @@ const hotSettings = ref({
       },
       'row_above': { 
         name: 'Sisipkan Baris di Atas',
-        disabled: function() {
-          return protectedRanges.value.some(r => r.sheet_name === currentSheetName.value);
-        }
+        hidden: function() { return !isOwner.value; }
       },
       'row_below': { 
         name: 'Sisipkan Baris di Bawah',
-        disabled: function() {
-          return protectedRanges.value.some(r => r.sheet_name === currentSheetName.value);
-        }
+        hidden: function() { return !isOwner.value; }
       },
       'remove_row': { 
         name: 'Hapus Baris',
-        disabled: function() {
-          return protectedRanges.value.some(r => r.sheet_name === currentSheetName.value);
-        }
+        hidden: function() { return !isOwner.value; }
       },
       'col_left': { 
         name: 'Sisipkan Kolom di Kiri',
-        disabled: function() {
-          return protectedRanges.value.some(r => r.sheet_name === currentSheetName.value);
-        }
+        hidden: function() { return !isOwner.value; }
       },
       'col_right': { 
         name: 'Sisipkan Kolom di Kanan',
-        disabled: function() {
-          return protectedRanges.value.some(r => r.sheet_name === currentSheetName.value);
-        }
+        hidden: function() { return !isOwner.value; }
       },
       'remove_col': { 
         name: 'Hapus Kolom',
-        disabled: function() {
-          return protectedRanges.value.some(r => r.sheet_name === currentSheetName.value);
-        }
+        hidden: function() { return !isOwner.value; }
       },
-      'sep1': '---------',
+      'sep1': {
+        hidden: function() { return !isOwner.value; },
+        name: '---------'
+      },
       'make_bold': {
         name: '<b>Tebal (Bold)</b>',
+        hidden: function() { return !isOwner.value; },
         callback: function (key, selection) { applyStyleToSelection(this, selection, 'ht-bold') }
       },
       'make_italic': {
         name: '<i>Miring (Italic)</i>',
+        hidden: function() { return !isOwner.value; },
         callback: function (key, selection) { applyStyleToSelection(this, selection, 'ht-italic') }
       },
-      'sep2': '---------',
+      'sep2': {
+        hidden: function() { return !isOwner.value; },
+        name: '---------'
+      },
       'border_all': {
         name: '🔲 Border Penuh (Kotak)',
+        hidden: function() { return !isOwner.value; },
         callback: function (key, selection) { applyStyleToSelection(this, selection, 'cell-border-all') }
       },
       'bg_yellow': {
         name: '🎨 Background Kuning',
+        hidden: function() { return !isOwner.value; },
         callback: function (key, selection) { applyStyleToSelection(this, selection, 'bg-yellow') }
       },
       'bg_green': {
         name: '🎨 Background Hijau',
+        hidden: function() { return !isOwner.value; },
         callback: function (key, selection) { applyStyleToSelection(this, selection, 'bg-green') }
       },
       'bg_blue': {
         name: '🎨 Background Biru',
+        hidden: function() { return !isOwner.value; },
         callback: function (key, selection) { applyStyleToSelection(this, selection, 'bg-blue') }
       },
       'clear_format': {
         name: '🧹 Hapus Format & Border',
+        hidden: function() { return !isOwner.value; },
         callback: function (key, selection) {
           const range = selection[0]
           for (let r = range.start.row; r <= range.end.row; r++) {
@@ -468,9 +565,15 @@ const hotSettings = ref({
           this.render()
         }
       },
-      'sep3': '---------',
+      'sep3': {
+        hidden: function() { return !isOwner.value; },
+        name: '---------'
+      },
       'copy': {},
-      'cut': {}
+      'cut': {
+        hidden: function() { return !isOwner.value; },
+        name: '---------'
+      }
     }
   },
   licenseKey: 'non-commercial-and-evaluation'
@@ -529,6 +632,7 @@ const switchSheet = (sheetName) => {
   if (hotRef.value && hotRef.value.hotInstance) {
     const hotInstance = hotRef.value.hotInstance
     allSheets.value[currentSheetName.value].rows = hotInstance.getData()
+    allSheets.value[currentSheetName.value].rowOwners = { ...rowOwners.value }
     
     const stylesMap = {}
     const totalRows = hotInstance.countRows()
@@ -547,13 +651,15 @@ const switchSheet = (sheetName) => {
 
   currentSheetName.value = sheetName
   
+  const targetSheet = allSheets.value[sheetName]
+  rowOwners.value = targetSheet && targetSheet.rowOwners ? { ...targetSheet.rowOwners } : {}
+  
   setTimeout(() => {
     if (hotRef.value && hotRef.value.hotInstance) {
       const hotInstance = hotRef.value.hotInstance
-      const targetSheet = allSheets.value[sheetName]
-      
       hotInstance.loadData(targetSheet.rows)
       applySheetStyles(hotInstance, targetSheet)
+      hotInstance.updateSettings({ cells: hotSettings.value.cells })
     }
   }, 50)
 }
@@ -564,7 +670,8 @@ const addNewSheet = () => {
   
   allSheets.value[newSheetName] = {
     rows: Array.from({ length: 60 }, () => Array(20).fill('')),
-    styles: {}
+    styles: {},
+    rowOwners: {}
   }
 
   switchSheet(newSheetName)
@@ -638,26 +745,50 @@ const fetchSpreadsheetDetail = async () => {
     if (res.success && res.data) {
       spreadsheet.value = res.data
       const content = res.data.data_content
+      
       if (content) {
         if (content.sheets && typeof content.sheets === 'object') {
+          for (const sName in content.sheets) {
+            const sh = content.sheets[sName]
+            const normalizedOwners = {}
+            if (sh.rowOwners && typeof sh.rowOwners === 'object') {
+              for (const rIdx in sh.rowOwners) {
+                normalizedOwners[String(rIdx)] = sh.rowOwners[rIdx]
+              }
+            }
+            sh.rowOwners = normalizedOwners
+          }
           allSheets.value = content.sheets
         } else if (content.rows && Array.isArray(content.rows)) {
           allSheets.value['Sheet1'] = {
             rows: content.rows,
-            styles: content.styles || {}
+            styles: content.styles || {},
+            rowOwners: content.rowOwners || {}
           }
         }
 
-        const firstSheetKey = Object.keys(allSheets.value)[0] || 'Sheet1'
-        currentSheetName.value = firstSheetKey
+        const sheetKeys = Object.keys(allSheets.value)
+        const targetSheetName = sheetKeys.includes(currentSheetName.value) ? currentSheetName.value : sheetKeys[0] || 'Sheet1'
+        currentSheetName.value = targetSheetName
+
+        const activeSheet = allSheets.value[targetSheetName]
+        if (activeSheet && activeSheet.rowOwners) {
+          rowOwners.value = { ...activeSheet.rowOwners }
+        } else {
+          rowOwners.value = {}
+        }
 
         if (hotRef.value && hotRef.value.hotInstance) {
           const hotInstance = hotRef.value.hotInstance
-          const targetSheet = allSheets.value[firstSheetKey]
-          hotInstance.loadData(targetSheet.rows)
-          applySheetStyles(hotInstance, targetSheet)
+          hotInstance.loadData(activeSheet.rows)
+          applySheetStyles(hotInstance, activeSheet)
+          
+          hotInstance.updateSettings({
+            cells: hotSettings.value.cells
+          })
+          hotInstance.render()
         } else {
-          hotSettings.value.data = allSheets.value[firstSheetKey].rows
+          hotSettings.value.data = activeSheet.rows
         }
       }
     } else {
@@ -695,6 +826,8 @@ const saveData = async (isAutoSave = false) => {
   const hotInstance = hotRef.value.hotInstance
 
   allSheets.value[currentSheetName.value].rows = hotInstance.getData()
+  allSheets.value[currentSheetName.value].rowOwners = { ...rowOwners.value }
+
   const stylesMap = {}
   const totalRows = hotInstance.countRows()
   const totalCols = hotInstance.countCols()
@@ -817,7 +950,6 @@ onMounted(async () => {
 
   socket.emit('join_spreadsheet', route.params.id)
 
-  // 🛠️ PENTING: Panggil render() langsung agar baris merah yang sudah lepas langsung hilang seketika tanpa refresh
   socket.on('sync_locks', (locks) => {
     lockedRows.value = locks || {}
     if (hotRef.value && hotRef.value.hotInstance) {
@@ -847,12 +979,16 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.spreadsheet-container {
-  max-width: 1350px;
-  margin: 0 auto;
-  padding: 24px 16px 60px 16px;
+/* 💡 Menggunakan container full-width agar memenuhi layar */
+.spreadsheet-container-full {
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 16px 24px 60px 24px;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #1e293b;
+  background-color: #f8fafc;
+  box-sizing: border-box;
 }
 
 .not-found-card {
@@ -920,7 +1056,7 @@ onBeforeUnmount(() => {
 .title-input-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .sheet-title-input {
@@ -931,7 +1067,7 @@ onBeforeUnmount(() => {
   padding: 4px 8px;
   border-radius: 6px;
   outline: none;
-  width: 320px;
+  width: 280px;
   background: transparent;
   transition: all 0.2s;
 }
@@ -947,8 +1083,38 @@ onBeforeUnmount(() => {
   color: #4338ca;
   font-size: 11px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 20px;
+}
+
+/* 💡 Styling Info User Pill di Sebelah Badge */
+.current-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.user-avatar-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.user-name-text {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn-back {
@@ -1450,4 +1616,10 @@ onBeforeUnmount(() => {
 .spreadsheet-body-card :deep(.bg-yellow) { background-color: #fef08a !important; }
 .spreadsheet-body-card :deep(.bg-green) { background-color: #bbf7d0 !important; }
 .spreadsheet-body-card :deep(.bg-blue) { background-color: #bfdbfe !important; }
+
+.spreadsheet-body-card :deep(.row-owned-by-other) {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  cursor: not-allowed !important;
+}
 </style>

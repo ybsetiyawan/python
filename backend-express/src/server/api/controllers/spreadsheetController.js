@@ -65,22 +65,26 @@ class SpreadsheetController {
     }
   }
 
-  static async updateSpreadsheet(req, res) {
+ static async updateSpreadsheet(req, res) {
     try {
       const { id } = req.params;
       const { title, description, data_content, is_shared } = req.body;
+
+      // Ambil ID user yang sedang login (bisa dari middleware auth req.user atau dikirim dari body)
+      const userId = req.user?.id || req.body.user_id;
 
       const existing = await SpreadsheetRepository.findById(id);
       if (!existing) {
         return res.status(404).json({ success: false, error: "Spreadsheet tidak ditemukan" });
       }
 
+      // Kirim userId sebagai parameter ketiga ke repository
       const updated = await SpreadsheetRepository.update(id, {
         title,
         description,
         data_content,
         is_shared
-      });
+      }, userId);
 
       return res.status(200).json({
         success: true,

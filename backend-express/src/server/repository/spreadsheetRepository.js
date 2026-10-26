@@ -24,7 +24,6 @@ class SpreadsheetRepository {
     return result.rows;
   }
 
-  // FITUR BARU: Mengambil daftar spreadsheet berdasarkan ID pembuatnya (created_by)
   static async findByCreator(userId) {
     const query = `
       SELECT s.*, u.name as creator_name 
@@ -48,49 +47,72 @@ class SpreadsheetRepository {
     return result.rows[0];
   }
 
-  static async update(id, data) {
+ static async update(id, data, currentUserId) {
     const { title, description, data_content, is_shared } = data;
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
 
-      // 1. Ambil data spreadsheet lama untuk dibandingkan
-      const oldRes = await client.query(`SELECT data_content FROM spreadsheets WHERE id = $1 FOR UPDATE;`, [id]);
+      // 1. Ambil data spreadsheet lama
+      const oldRes = await client.query(`SELECT data_content, created_by FROM spreadsheets WHERE id = $1 FOR UPDATE;`, [id]);
       if (oldRes.rows.length === 0) {
         throw new Error("Spreadsheet tidak ditemukan");
       }
+      
+      const spreadsheetOwnerId = oldRes.rows[0].created_by;
       const oldDataContent = oldRes.rows[0].data_content || { sheets: {} };
+      const isSpreadsheetOwner = spreadsheetOwnerId && currentUserId && String(spreadsheetOwnerId) === String(currentUserId);
 
-      // 2. Ambil daftar protected ranges untuk spreadsheet ini
-      const protectedRes = await client.query(`SELECT * FROM spreadsheet_protected_ranges WHERE spreadsheet_id = $1;`, [id]);
-      const protectedRanges = protectedRes.rows;
+      // 2. Validasi & Proses rowOwners serta proteksi kolom utama (Kolom 0 & 1)
+      if (data_content && data_content.sheets) {
+        for (const sheetName in data_content.sheets) {
+          const newSheet = data_content.sheets[sheetName];
+          const oldSheet = oldDataContent.sheets?.[sheetName] || { rows: [], rowOwners: {} };
+          
+          const oldOwners = oldSheet.rowOwners || {};
+          const incomingOwners = newSheet.rowOwners || {};
+          const mergedOwners = { ...oldOwners, ...incomingOwners };
 
-      // 3. Validasi keamanan: Pastikan data yang dilindungi tidak dihapus/diubah oleh user non-admin
-      if (protectedRanges.length > 0 && data_content && data_content.sheets) {
-        for (const pr of protectedRanges) {
-          const targetSheetName = pr.sheet_name;
-          const oldSheet = oldDataContent.sheets?.[targetSheetName];
-          const newSheet = data_content.sheets[targetSheetName];
+          const newRows = newSheet.rows || [];
+          const oldRows = oldSheet.rows || [];
 
-          if (oldSheet && newSheet) {
-            // Cek baris DAN kolom yang dilindungi agar tidak boleh terhapus/hilang isinya
-            for (let r = pr.start_row; r <= pr.end_row; r++) {
-              for (let c = pr.start_col; c <= pr.end_col; c++) {
-                const oldVal = oldSheet.rows?.[r]?.[c];
-                const newVal = newSheet.rows?.[r]?.[c];
+          for (let r = 0; r < newRows.length; r++) {
+            const rowStr = String(r);
+            const newRowData = newRows[r] || [];
+            const oldRowData = oldRows[r] || [];
 
-                if (oldVal !== undefined && oldVal !== null && String(oldVal).trim() !== '' && 
-                    (newVal === undefined || newVal === null || String(newVal).trim() === '')) {
-                  throw new Error(`Aksi ditolak! Area sel pada rentang yang dilindungi Administrator tidak boleh dihapus.`);
+            // Jika bukan owner utama spreadsheet, lindungi Kolom 0 & 1 agar tidak diubah isinya
+            if (!isSpreadsheetOwner) {
+              for (let c = 0; c < 2; c++) {
+                const oldVal = oldRows[r]?.[c];
+                const newVal = newRowData[c];
+                
+                if (oldVal !== undefined && oldVal !== null && String(oldVal).trim() !== '' && oldVal !== newVal) {
+                  throw new Error(`Aksi ditolak! Kolom utama pada baris ${r + 1} tidak boleh diubah.`);
                 }
               }
             }
+
+            // Kelola pemilik baris berdasarkan adanya data
+            const hasDataAnywhere = newRowData.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
+            let ownerOfRow = mergedOwners[rowStr] || mergedOwners[r] || oldOwners[rowStr] || oldOwners[r];
+
+            if (hasDataAnywhere) {
+              if (!ownerOfRow) {
+                ownerOfRow = currentUserId || spreadsheetOwnerId;
+              }
+              mergedOwners[rowStr] = ownerOfRow;
+            } else {
+              delete mergedOwners[rowStr];
+              delete mergedOwners[r];
+            }
           }
+          newSheet.rowOwners = mergedOwners;
         }
       }
 
-      // 4. Jika aman, lanjutkan proses update ke database
+      // 3. Simpan perubahan ke database
       const query = `
         UPDATE spreadsheets 
         SET title = COALESCE($1, title),
@@ -120,13 +142,11 @@ class SpreadsheetRepository {
     }
   }
 
-  // FITUR BARU: Menambahkan baris secara aman tanpa menimpa baris milik user lain
   static async appendRow(id, sheetName, newRowData) {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // 1. Ambil data spreadsheet terbaru dengan penguncian baris (FOR UPDATE) agar aman dari race condition
       const selectQuery = `SELECT data_content FROM spreadsheets WHERE id = $1 FOR UPDATE;`;
       const selectRes = await client.query(selectQuery, [id]);
       
@@ -136,17 +156,15 @@ class SpreadsheetRepository {
 
       let dataContent = selectRes.rows[0].data_content || { sheets: {} };
       
-      // Pastikan struktur sheets ada
       if (!dataContent.sheets) {
         dataContent.sheets = {};
       }
       if (!dataContent.sheets[sheetName]) {
-        dataContent.sheets[sheetName] = { rows: [], styles: {} };
+        dataContent.sheets[sheetName] = { rows: [], styles: {}, rowOwners: {} };
       }
 
       const targetSheet = dataContent.sheets[sheetName];
 
-      // 2. Cari baris kosong pertama dari bawah atau langsung push ke baris kosong berikutnya
       let lastFilledIndex = -1;
       for (let i = targetSheet.rows.length - 1; i >= 0; i--) {
         const row = targetSheet.rows[i];
@@ -158,11 +176,8 @@ class SpreadsheetRepository {
       }
 
       const targetRowIndex = lastFilledIndex + 1;
-
-      // Masukkan data baru ke baris kosong tersebut
       targetSheet.rows[targetRowIndex] = newRowData;
 
-      // 3. Simpan kembali ke database
       const updateQuery = `
         UPDATE spreadsheets 
         SET data_content = $1, updated_at = CURRENT_TIMESTAMP
@@ -188,7 +203,7 @@ class SpreadsheetRepository {
   }
 
   // ==========================================
-  // 🔒 FITUR BARU: PROTECTED RANGES (ADMIN)
+  // 🔒 PROTECTED RANGES (ADMIN)
   // ==========================================
 
   static async getProtectedRanges(spreadsheetId) {
