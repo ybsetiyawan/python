@@ -166,6 +166,7 @@ async function handleLogin() {
 
         localStorage.setItem("admin_token", data.token);
         localStorage.setItem("user_data", JSON.stringify(data.user));
+        // Contoh saat sukses login di halaman frontend
 
         // Aktifkan animasi transisi geser ke KIRI
         isExiting.value = true;

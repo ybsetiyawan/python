@@ -1,0 +1,1 @@
+ALTER TABLE stock_points ADD COLUMN ip_gateway VARCHAR(50);

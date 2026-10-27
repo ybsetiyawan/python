@@ -5,7 +5,7 @@
     <div class="page-header slide-up">
       <div class="header-info">
         <h1>Master Stock Point</h1>
-        <p>Kelola data master stock point, cabang, email, dan area operasional PT Indomarco Adi Prima.</p>
+        <p>Kelola data master stock point, cabang, email, area operasional, dan IP Gateway router PT Indomarco Adi Prima.</p>
       </div>
       
       <!-- Tombol Aksi Header -->
@@ -37,13 +37,13 @@
         class="custom-table"
         no-data-text="Belum ada data stock point sistem"
       >
-        <!-- Custom Top Search Bar Slot untuk Data Table jika diperlukan, atau taruh di atas tabel -->
+        <!-- Top Search Bar Slot -->
         <template v-slot:top>
           <div class="px-4 pt-4 pb-2 d-flex justify-space-between align-center flex-wrap" style="gap: 12px;">
             <v-text-field
               v-model="searchQuery"
               prepend-inner-icon="mdi-magnify"
-              label="Cari S-Point, kode, atau area..."
+              label="Cari S-Point, kode, IP Gateway, atau area..."
               variant="outlined"
               density="compact"
               hide-details
@@ -58,9 +58,9 @@
         </template>
 
         <!-- Kolom Plant -->
-        <template v-slot:item.plant_cd="{ item }">
+        <!-- <template v-slot:item.plant_cd="{ item }">
           <span class="badge-plant">{{ item.plant_cd }}</span>
-        </template>
+        </template> -->
 
         <!-- Kolom Cabang -->
         <template v-slot:item.nama_cab="{ item }">
@@ -87,6 +87,11 @@
         <!-- Kolom Area -->
         <template v-slot:item.area="{ item }">
           <span class="area-tag">{{ item.area || '-' }}</span>
+        </template>
+
+        <!-- Kolom IP Gateway -->
+        <template v-slot:item.ip_gateway="{ item }">
+          <span class="font-monospace text-slate-800 font-weight-bold">{{ item.ip_gateway || 'Belum diset' }}</span>
         </template>
 
         <!-- Kolom Status -->
@@ -163,7 +168,7 @@
 
           <div class="d-flex mb-3" style="gap: 12px;">
             <div class="flex-grow-1">
-              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Kode S-Point</label>
+              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Kode SP</label>
               <v-text-field
                 v-model="form.kode_spoint"
                 :disabled="dialog.isEdit"
@@ -175,7 +180,7 @@
               ></v-text-field>
             </div>
             <div class="flex-grow-1">
-              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Nama Stock Point</label>
+              <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">Nama SP</label>
               <v-text-field
                 v-model="form.nama_spoint"
                 placeholder="SP CANDI"
@@ -193,6 +198,18 @@
               v-model="form.email"
               type="email"
               placeholder="spsby-candi@indomarco.co.id"
+              variant="outlined"
+              density="comfortable"
+              hide-details="auto"
+            ></v-text-field>
+          </div>
+
+          <!-- INPUT IP GATEWAY ROUTER -->
+          <div class="mb-3">
+            <label class="d-block text-caption font-weight-bold text-slate-700 mb-1">IP Gateway Router</label>
+            <v-text-field
+              v-model="form.ip_gateway"
+              placeholder="Contoh: 10.128.217.113"
               variant="outlined"
               density="comfortable"
               hide-details="auto"
@@ -246,7 +263,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- DIALOG KONFIRMASI HAPUS (KUSTOM TANPA LOCALHOST) -->
+    <!-- DIALOG KONFIRMASI HAPUS -->
     <v-dialog v-model="deleteDialog.show" max-width="360">
       <v-card class="rounded-2xl pa-5 text-center elevation-4">
         <div class="modal-icon-container bg-red-light mb-3 mx-auto">
@@ -328,12 +345,13 @@ const showToast = (message: string, type: 'success' | 'error' = 'success') => {
 }
 
 const headers = [
-  { title: 'Plant', key: 'plant_cd', width: '90px' },
+  // { title: 'Plant', key: 'plant_cd', width: '90px' },
   { title: 'Cabang', key: 'nama_cab', width: '110px' },
-  { title: 'Kode S-Point', key: 'kode_spoint', width: '120px' },
-  { title: 'Nama Stock Point', key: 'nama_spoint' },
+  { title: 'Kode SP', key: 'kode_spoint', width: '110px' },
+  { title: 'Nama SP', key: 'nama_spoint' },
   { title: 'Email', key: 'email' },
-  { title: 'Area', key: 'area', width: '140px' },
+  { title: 'Area', key: 'area', width: '130px' },
+  { title: 'IP Gateway', key: 'ip_gateway', width: '140px' },
   { title: 'Status', key: 'aktif', width: '100px' },
   { title: 'Aksi', key: 'actions', align: 'end' as const, sortable: false, width: '100px' }
 ]
@@ -349,6 +367,7 @@ const form = reactive({
   kode_spoint: '',
   nama_spoint: '',
   email: '',
+  ip_gateway: '',
   aktif: true,
   area: ''
 })
@@ -358,7 +377,6 @@ const deleteDialog = reactive({
   item: null as any
 })
 
-// Fetch Data Stock Point dengan proteksi otorisasi jika di-bypass via URL
 const fetchStockPoints = async () => {
   loading.value = true
   try {
@@ -396,6 +414,7 @@ const filteredStockPoints = computed(() => {
   return stockPoints.value.filter(item => 
     item.nama_spoint?.toLowerCase().includes(q) ||
     item.kode_spoint?.toLowerCase().includes(q) ||
+    item.ip_gateway?.toLowerCase().includes(q) ||
     item.area?.toLowerCase().includes(q) ||
     item.email?.toLowerCase().includes(q) ||
     item.nama_cab?.toLowerCase().includes(q)
@@ -409,12 +428,11 @@ const openAddDialog = () => {
   form.kode_spoint = ''
   form.nama_spoint = ''
   form.email = ''
+  form.ip_gateway = ''
   form.aktif = true
   form.area = ''
   dialog.show = true
 }
-
-const openEditModal = (item: any) => {} // fallback
 
 const openEditDialog = (item: any) => {
   dialog.isEdit = true
@@ -423,16 +441,12 @@ const openEditDialog = (item: any) => {
   form.kode_spoint = item.kode_spoint
   form.nama_spoint = item.nama_spoint
   form.email = item.email
+  form.ip_gateway = item.ip_gateway || ''
   form.aktif = item.aktif
   form.area = item.area
   dialog.show = true
 }
 
-const closeModal = () => {
-  dialog.show = false
-}
-
-// Proses Simpan (Create / Update) dengan proteksi otorisasi & feedback UI
 const saveStockPoint = async () => {
   if (!form.kode_spoint || !form.nama_spoint) {
     showToast('Kode dan Nama S-Point wajib diisi!', 'error')
@@ -469,13 +483,11 @@ const saveStockPoint = async () => {
   }
 }
 
-// Buka Modal Kustom Konfirmasi Hapus
 const confirmDelete = (item: any) => {
   deleteDialog.item = item
   deleteDialog.show = true
 }
 
-// Eksekusi Hapus Data
 const executeDelete = async () => {
   if (!deleteDialog.item) return
   deleting.value = true
@@ -553,6 +565,11 @@ const executeDelete = async () => {
 
 .stockpoint-management-page .bg-red-light { 
   background-color: #ffeeec; 
+}
+
+.font-monospace {
+  font-family: monospace, monospace;
+  font-size: 13px;
 }
 
 /* Badge Plant & Area */

@@ -25,6 +25,7 @@ const menuRoutes = require('./routes/menuRoutes');
 const workspaceRoutes = require('./routes/workspaceRoutes');
 const stockpointRoutes = require('./routes/stockpointRoutes');
 const spreadsheetRoutes = require('./routes/spreadsheetRoutes.js');
+const monitorRouter = require('./routes/monitorRoutes.js');
 
 app.set("trust proxy", true);
 
@@ -49,6 +50,7 @@ app.use("/api/menus", menuRoutes);
 app.use('/api/workspace', workspaceRoutes);
 app.use('/api/stock-points', stockpointRoutes);
 app.use('/api/spreadsheets', spreadsheetRoutes);
+app.use('/api/monitor', monitorRouter);
 
 app.get("/", (req, res) => {
   res.send("Express Server Running 🚀");
