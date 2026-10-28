@@ -1,22 +1,11 @@
 <template>
   <v-app class="workspace-layout" :class="{ 'slide-out-right': isLoggingOut }">
     <!-- NAVIGATION DRAWER: LIGHT & CLEAN -->
-    <v-navigation-drawer
-      v-model="drawer"
-      elevation="0"
-      class="sidebar-clean border-e-sm"
-      :width="280"
-    >
+    <v-navigation-drawer v-model="drawer" elevation="0" class="sidebar-clean border-e-sm" :width="280">
       <!-- KARTU PROFIL USER DI SIDEBAR -->
       <div class="px-4 py-4">
         <div class="user-profile-box pa-3 d-flex align-center">
-          <v-badge
-            dot
-            location="bottom end"
-            color="success"
-            offset-x="2"
-            offset-y="2"
-          >
+          <v-badge dot location="bottom end" color="success" offset-x="2" offset-y="2">
             <v-avatar color="indigo-darken-2" size="38" class="elevation-1">
               <span class="text-white font-weight-bold text-subtitle-2">{{ userInitials }}</span>
             </v-avatar>
@@ -37,7 +26,8 @@
 
       <!-- NAVIGATION MENU -->
       <v-list nav density="comfortable" class="px-3 custom-menu-list">
-        <v-list-subheader class="text-uppercase font-weight-bold text-caption text-slate-400 px-3 mb-1" style="font-size: 10px; letter-spacing: 0.8px;">
+        <v-list-subheader class="text-uppercase font-weight-bold text-caption text-slate-400 px-3 mb-1"
+          style="font-size: 10px; letter-spacing: 0.8px;">
           Menu Navigasi
         </v-list-subheader>
 
@@ -49,17 +39,12 @@
         <!-- Render Menu Dinamis dari Tabel menus -->
         <template v-else>
           <template v-for="menu in menus" :key="menu.id || menu.path">
-            <v-list-item
-              :to="menu.path !== '/admin/export' && !menu.name.toLowerCase().includes('ekspor') ? menu.path : undefined"
-              @click="menu.path === '/admin/export' || menu.name.toLowerCase().includes('ekspor') ? showExportDialog = true : null"
-              color="indigo-darken-2"
-              rounded="xl"
-              class="mb-1.5 menu-item-custom"
-            >
+            <v-list-item :to="isActionMenu(menu) ? undefined : menu.path" @click="handleMenuClick(menu)"
+              color="indigo-darken-2" rounded="xl" class="mb-1.5 menu-item-custom">
               <template v-slot:prepend>
                 <v-icon :icon="formatIcon(menu.icon)" size="20" class="mr-3 text-indigo-darken-2" />
               </template>
-              
+
               <v-list-item-title class="font-weight-medium" style="font-size: 13.5px;">
                 {{ menu.name }}
               </v-list-item-title>
@@ -96,21 +81,12 @@
 
       <!-- KOTAK PENCARIAN CEPAT DOKUMEN / FORM / SPREADSHEET MENGGUNAKAN V-MENU -->
       <div class="quick-search-container d-none d-md-flex align-center mr-4">
-        <v-menu
-          v-model="showSearchResults"
-          :close-on-content-click="false"
-          location="bottom end"
-          offset="8"
-        >
+        <v-menu v-model="showSearchResults" :close-on-content-click="false" location="bottom end" offset="8">
           <template v-slot:activator="{ props }">
             <div class="search-input-wrapper" v-bind="props">
               <v-icon size="16" class="search-icon">mdi-magnify</v-icon>
-              <input 
-                type="text" 
-                v-model="globalSearchQuery" 
-                placeholder="Cari judul atau ID dokumen..." 
-                class="global-search-input"
-              />
+              <input type="text" v-model="globalSearchQuery" placeholder="Cari judul atau ID dokumen..."
+                class="global-search-input" />
               <span v-if="globalSearchQuery" @click="clearSearch" class="clear-search-btn">&times;</span>
             </div>
           </template>
@@ -118,12 +94,8 @@
           <!-- Dropdown Hasil Pencarian Aman dari Terpotong -->
           <v-card class="elevation-6 rounded-xl pa-2" width="340">
             <div v-if="searchResults.length > 0">
-              <div 
-                v-for="item in searchResults" 
-                :key="item.id" 
-                class="search-result-row"
-                @click="selectSearchResult(item)"
-              >
+              <div v-for="item in searchResults" :key="item.id" class="search-result-row"
+                @click="selectSearchResult(item)">
                 <div class="result-info">
                   <span class="result-title">{{ item.title }}</span>
                   <span class="result-type">{{ item.type === 'spreadsheet' ? '📊 Spreadsheet' : '📝 Formulir' }}</span>
@@ -143,19 +115,17 @@
         <v-avatar size="38" color="indigo-lighten-5" class="mr-3 border-indigo-subtle">
           <span class="text-indigo-darken-2 font-weight-bold text-subtitle-2">{{ userInitials }}</span>
         </v-avatar>
-        
+
         <div class="overflow-hidden d-none d-sm-block">
-          <div class="text-subtitle-2 font-weight-bold text-truncate text-slate-900" style="font-size: 13px !important;">
+          <div class="text-subtitle-2 font-weight-bold text-truncate text-slate-900"
+            style="font-size: 13px !important;">
             {{ userName }}
           </div>
           <v-tooltip text="Keluar dari sistem" location="bottom">
             <template #activator="{ props }">
-              <div
-                v-bind="props"
+              <div v-bind="props"
                 class="text-caption text-rose-600 font-weight-semibold cursor-pointer d-flex align-center logout-trigger"
-                @click="logout"
-                style="font-size: 11px !important;"
-              >
+                @click="logout" style="font-size: 11px !important;">
                 <v-icon size="12" class="mr-1">mdi:logout</v-icon>
                 Keluar
               </div>
@@ -177,13 +147,7 @@
     </v-main>
 
     <!-- SNACKBAR NOTIFICATION -->
-    <v-snackbar
-      v-model="snackbar.show"
-      :color="snackbar.color"
-      location="top right"
-      timeout="3000"
-      rounded="pill"
-    >
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" location="top right" timeout="3000" rounded="pill">
       {{ snackbar.text }}
       <template v-slot:actions>
         <v-btn variant="text" @click="snackbar.show = false">Tutup</v-btn>
@@ -198,16 +162,8 @@
         </v-card-title>
 
         <v-card-text class="px-4 pt-2 pb-0">
-          <v-text-field
-            v-model="exportPassword"
-            label="Masukkan Password"
-            type="password"
-            variant="outlined"
-            density="comfortable"
-            color="indigo-darken-2"
-            class="rounded-xl"
-            autofocus
-          />
+          <v-text-field v-model="exportPassword" label="Masukkan Password" type="password" variant="outlined"
+            density="comfortable" color="indigo-darken-2" class="rounded-xl" autofocus />
         </v-card-text>
 
         <v-card-actions class="px-4 pb-4">
@@ -215,7 +171,8 @@
           <v-btn variant="text" class="text-slate-600 text-none" @click="showExportDialog = false">
             Batal
           </v-btn>
-          <v-btn color="indigo-darken-2" class="text-none rounded-xl px-5" :loading="exportLoading" @click="exportExcel">
+          <v-btn color="indigo-darken-2" class="text-none rounded-xl px-5" :loading="exportLoading"
+            @click="exportExcel">
             Download
           </v-btn>
         </v-card-actions>
@@ -274,10 +231,10 @@ watch(globalSearchQuery, async (newQuery) => {
   try {
     const { $api } = useNuxtApp();
     const res: any = await $api(`/workspace/search?q=${encodeURIComponent(newQuery.trim())}`).catch(() => null);
-    
+
     const rawData = res?.data || res?.results || res || [];
     const list = Array.isArray(rawData) ? rawData : (rawData.data || []);
-    
+
     searchResults.value = Array.isArray(list) ? list : [];
     showSearchResults.value = true;
   } catch (err) {
@@ -318,6 +275,21 @@ const fetchSidebarMenus = async () => {
     menuLoading.value = false;
   }
 };
+
+// Fungsi untuk mendeteksi apakah menu ini adalah aksi fungsional (bukan halaman biasa)
+function isActionMenu(menu: any) {
+  const path = menu.path || "";
+  const name = menu.name.toLowerCase();
+  return path.includes('/export') || name.includes('ekspor') || name.includes('export');
+}
+
+// Handler ketika menu diklik
+function handleMenuClick(menu: any) {
+  if (isActionMenu(menu)) {
+    // Jika menu ekspor, buka dialog password dan cegah navigasi halaman
+    showExportDialog.value = true;
+  }
+}
 
 const handleMenuUpdate = () => {
   fetchSidebarMenus();
@@ -430,36 +402,45 @@ const clearSearch = () => {
   background-color: #ffffff !important;
   border-right: 1px solid #e2e8f0;
 }
+
 .user-profile-box {
   background-color: #f8fafc;
   border: 1px solid #f1f5f9;
   border-radius: 14px;
 }
+
 .appbar-clean {
   border-bottom: 1px solid #e2e8f0;
 }
+
 .main-background {
   background-color: #f8fafc;
 }
+
 .menu-item-custom {
   font-weight: 500;
   color: #334155;
   transition: all 0.2s ease;
 }
+
 .menu-item-custom:hover {
   background-color: #f1f5f9;
 }
+
 :deep(.v-list-item--active) {
   background-color: #eef2ff !important;
   color: #4f46e5 !important;
 }
+
 .border-indigo-subtle {
   border: 1px solid rgba(79, 70, 229, 0.2);
 }
+
 .logout-trigger {
   color: #e11d48 !important;
   transition: opacity 0.2s;
 }
+
 .logout-trigger:hover {
   opacity: 0.8;
 }
@@ -469,10 +450,12 @@ const clearSearch = () => {
   align-items: center;
   font-size: 13px;
 }
+
 .breadcrumb-root {
   color: #64748b;
   font-weight: 500;
 }
+
 .breadcrumb-current {
   display: inline-flex;
   align-items: center;
@@ -487,6 +470,7 @@ const clearSearch = () => {
 :deep(.v-navigation-drawer__content::-webkit-scrollbar) {
   width: 4px;
 }
+
 :deep(.v-navigation-drawer__content::-webkit-scrollbar-thumb) {
   background: #cbd5e1;
   border-radius: 10px;
@@ -509,13 +493,19 @@ const clearSearch = () => {
   transition: all 0.2s;
   cursor: text;
 }
+
 .search-input-wrapper:focus-within {
   background: #fff;
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
   width: 300px;
 }
-.search-icon { color: #64748b; margin-right: 8px; }
+
+.search-icon {
+  color: #64748b;
+  margin-right: 8px;
+}
+
 .global-search-input {
   border: none;
   outline: none;
@@ -524,13 +514,17 @@ const clearSearch = () => {
   width: 100%;
   color: #0f172a;
 }
+
 .clear-search-btn {
   cursor: pointer;
   color: #94a3b8;
   font-weight: bold;
   padding: 0 4px;
 }
-.clear-search-btn:hover { color: #0f172a; }
+
+.clear-search-btn:hover {
+  color: #0f172a;
+}
 
 .search-result-row {
   padding: 10px 12px;
@@ -541,8 +535,29 @@ const clearSearch = () => {
   align-items: center;
   transition: background 0.15s;
 }
-.search-result-row:hover { background: #f8fafc; }
-.result-title { font-size: 13px; font-weight: 600; color: #0f172a; display: block; }
-.result-type { font-size: 11px; color: #64748b; }
-.result-id { font-size: 11px; background: #eef2ff; color: #4f46e5; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+
+.search-result-row:hover {
+  background: #f8fafc;
+}
+
+.result-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  display: block;
+}
+
+.result-type {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.result-id {
+  font-size: 11px;
+  background: #eef2ff;
+  color: #4f46e5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
 </style>
