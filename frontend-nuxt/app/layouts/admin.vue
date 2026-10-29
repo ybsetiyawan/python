@@ -280,16 +280,34 @@ const fetchSidebarMenus = async () => {
 function isActionMenu(menu: any) {
   const path = menu.path || "";
   const name = menu.name.toLowerCase();
-  return path.includes('/export') || name.includes('ekspor') || name.includes('export');
+  
+  return (
+    path.includes('/export') || 
+    name.includes('ekspor') || 
+    name.includes('export') ||
+    path.includes('/bentopdf') ||
+    name.includes('pdf') ||
+    name.includes('bentopdf')
+  );
 }
 
-// Handler ketika menu diklik
+
+
 function handleMenuClick(menu: any) {
-  if (isActionMenu(menu)) {
-    // Jika menu ekspor, buka dialog password dan cegah navigasi halaman
+  const path = menu.path || "";
+  const name = menu.name.toLowerCase();
+
+  // Jika menu ekspor, tetap buka dialog password
+  if (path.includes('/export') || name.includes('ekspor') || name.includes('export')) {
     showExportDialog.value = true;
+    return;
   }
+
+  // Untuk menu PDF, cukup biarkan router Nuxt yang mengarahkan ke /admin/pdf-toolkit
+  router.push(path);
 }
+
+
 
 const handleMenuUpdate = () => {
   fetchSidebarMenus();
