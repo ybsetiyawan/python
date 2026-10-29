@@ -3,7 +3,7 @@
     <div class="d-flex align-center justify-space-between mb-4">
       <div>
         <h2 class="text-slate-900 font-weight-bold text-h5">BentoPDF Toolkit</h2>
-        <p class="text-slate-500 text-caption">Kelola dokumen PDF perusahaan secara aman terintegrasi dengan workspace.</p>
+        <p class="text-slate-500 text-caption">Kelola dokumen PDF perusahaan secara aman.</p>
       </div>
     </div>
 
@@ -52,5 +52,6 @@ function openInNewTab() {
   width: 100%;
   height: 100%;
   border: none;
+
 }
 </style>
