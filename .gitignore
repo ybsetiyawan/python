@@ -94,6 +94,9 @@ uploads
 /uploads
 upload
 
+#bentopdf
+bentopdf/
+
 
 ### Python template
 __pycache__/
