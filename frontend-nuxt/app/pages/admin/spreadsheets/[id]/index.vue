@@ -26,15 +26,12 @@
           </div>
         </div>
         <div class="header-right">
-          <button v-if="isOwner" type="button" class="ribbon-btn btn-protect-action mr-3" @click="openProtectModal">
-            🔒 Proteksi Rentang
-          </button>
           <span v-if="saveStatus" class="mr-6 save-status-text" :class="{ 'text-success': saveStatus.includes('Tersimpan') }">{{ saveStatus }}</span>
           <button class="btn-excel-save" @click="saveData(false)">💾 Simpan Perubahan</button>
         </div>
       </div>
 
-      <!-- WPS Office / Excel Style Ribbon Toolbar dengan Ikon Baru -->
+      <!-- WPS Office / Excel Style Ribbon Toolbar + Freeze Panes Control -->
       <div class="wps-ribbon-toolbar">
         <div class="ribbon-group">
           <button type="button" class="ribbon-btn" title="Undo" @click="triggerUndo">↩️ Undo</button>
@@ -48,12 +45,22 @@
         <div class="ribbon-divider"></div>
         <div class="ribbon-group">
           <button type="button" class="ribbon-btn" title="Border Penuh" @click="applyStyleToActive('cell-border-all')">🔲 Border</button>
-          <!-- Tombol Warna Background dengan Ikon Cat (🎨) -->
           <button type="button" class="ribbon-btn color-swatch yellow" title="Bg Kuning" @click="applyStyleToActive('bg-yellow')">🎨🟡</button>
           <button type="button" class="ribbon-btn color-swatch green" title="Bg Hijau" @click="applyStyleToActive('bg-green')">🎨🟢</button>
           <button type="button" class="ribbon-btn color-swatch blue" title="Bg Biru" @click="applyStyleToActive('bg-blue')">🎨🔵</button>
-          <!-- Tombol Hapus Format dengan Ikon Penghapus (🧹) -->
           <button type="button" class="ribbon-btn text-danger" title="Hapus Format / Clear" @click="clearFormatting">🧹 Clear Format</button>
+        </div>
+        <div class="ribbon-divider"></div>
+        <!-- 💡 Kontrol Freeze Panes Interaktif -->
+        <div class="ribbon-group freeze-control-group">
+          <span class="freeze-label">❄️ Freeze:</span>
+          <select v-model="freezeMode" @change="updateFreezePanes" class="freeze-select">
+            <option value="none">Tanpa Pembekuan</option>
+            <option value="row1">Bekukan 1 Baris (Header)</option>
+            <option value="row2">Bekukan 2 Baris Pertama</option>
+            <option value="col1">Bekukan 1 Kolom Pertama</option>
+            <option value="both1">Bekukan 1 Baris & 1 Kolom</option>
+          </select>
         </div>
       </div>
 
@@ -88,58 +95,6 @@
         </div>
       </div>
     </template>
-
-    <!-- Modal Proteksi Rentang (Admin) -->
-    <div v-if="showProtectModal" class="modal-backdrop" @click.self="closeProtectModal">
-      <div class="modal-card">
-        <div class="modal-header">
-          <div>
-            <h3>Kelola Proteksi Rentang Sel</h3>
-            <p class="modal-sub">Blok area sel yang ingin dikunci agar tidak bisa diubah user lain.</p>
-          </div>
-          <button @click="closeProtectModal" class="btn-close">&times;</button>
-        </div>
-
-        <div class="modal-body">
-          <div class="protect-form-box">
-            <p class="info-tip">💡 Tips: Blok/sorot sel pada spreadsheet, lalu klik tombol di bawah untuk mengunci area tersebut pada sheet <strong>{{ currentSheetName }}</strong>.</p>
-            <div class="selected-range-info">
-              Area Terpilih: <strong>{{ formattedSelectedRangeLabel }}</strong>
-            </div>
-            <button class="btn-apply-protect" @click="saveProtectedRange">Kunci Area Terpilih Ini</button>
-          </div>
-
-          <h4 class="section-heading mt-4">Daftar Range yang Sedang Dikunci</h4>
-          <div class="protected-list-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Sheet</th>
-                  <th>Rentang Sel</th>
-                  <th class="text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in protectedRanges" :key="item.id">
-                  <td>{{ item.sheet_name }}</td>
-                  <td>Baris {{ item.start_row + 1 }} s/d {{ item.end_row + 1 }}, Kolom {{ item.start_col + 1 }} s/d {{ item.end_col + 1 }}</td>
-                  <td class="text-center">
-                    <button @click="deleteProtectedRange(item.id)" class="btn-delete-protect">Hapus Kunci</button>
-                  </td>
-                </tr>
-                <tr v-if="protectedRanges.length === 0">
-                  <td colspan="3" class="text-center text-muted py-3">Belum ada rentang sel yang diproteksi.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button @click="closeProtectModal" class="btn-close-modal">Tutup</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -178,17 +133,17 @@ const warningMessage = ref('')
 let warningTimeout = null
 let activeRowLockedByMe = null
 
+// State untuk mode freeze interaktif
+const freezeMode = ref('both1')
+
 const currentSheetName = ref('Sheet1')
 const allSheets = ref({
   'Sheet1': {
-    rows: Array.from({ length: 60 }, () => Array(20).fill('')),
+    rows: Array.from({ length: 200 }, () => Array(20).fill('')),
     styles: {},
     cellOwners: {}
   }
 })
-
-const showProtectModal = ref(false)
-const protectedRanges = ref([])
 
 const isOwner = computed(() => {
   if (!spreadsheet.value.created_by || !currentUser.value.id) return false
@@ -209,6 +164,10 @@ const hotSettings = ref({
   height: '700px',
   width: '100%',
   formulas: { engine: hyperFormulaInstance },
+
+  // Default awal diset ke 1 baris & 1 kolom
+  fixedRowsTop: 1,
+  fixedColumnsLeft: 1,
 
   afterChange: (changes, source) => {
     if (source === 'loadData' || !changes) return
@@ -284,7 +243,6 @@ const hotSettings = ref({
     }
   },
 
-  // 💡 PERBAIKAN UTAMA: Sertakan customStyle (styles) di sini agar terbaca oleh siapa saja secara real-time
   cells: (row, column) => {
     const cellProperties = {}
     const myId = String(currentUser.value?.id || '')
@@ -293,7 +251,6 @@ const hotSettings = ref({
     const cellKey = `${row},${column}`
     let ownerOfCell = cellOwners[cellKey] ? String(cellOwners[cellKey]) : null
 
-    // Ambil style kustom (border, bold, background) yang tersimpan
     let customStyle = currentSheet.styles && currentSheet.styles[cellKey] ? currentSheet.styles[cellKey] : ''
 
     if (lockedRows.value[row] && String(lockedRows.value[row].userId) !== myId) {
@@ -305,18 +262,6 @@ const hotSettings = ref({
     if (isOwner.value) {
       cellProperties.className = customStyle
       cellProperties.readOnly = false
-      return cellProperties
-    }
-
-    const isProtected = protectedRanges.value.some(range => {
-      return range.sheet_name === currentSheetName.value &&
-             row >= range.start_row && row <= range.end_row &&
-             column >= range.start_col && column <= range.end_col
-    })
-
-    if (isProtected) {
-      cellProperties.className = (customStyle + ' cell-protected-range').trim()
-      cellProperties.readOnly = true
       return cellProperties
     }
 
@@ -332,6 +277,31 @@ const hotSettings = ref({
   },
   licenseKey: 'non-commercial-and-evaluation'
 })
+
+// 💡 Fungsi interaktif untuk mengubah Freeze Panes secara dinamis
+const updateFreezePanes = () => {
+  if (!hotRef.value || !hotRef.value.hotInstance) return
+  const hotInstance = hotRef.value.hotInstance
+
+  let rowsTop = 0
+  let colsLeft = 0
+
+  if (freezeMode.value === 'row1') {
+    rowsTop = 1
+  } else if (freezeMode.value === 'row2') {
+    rowsTop = 2
+  } else if (freezeMode.value === 'col1') {
+    colsLeft = 1
+  } else if (freezeMode.value === 'both1') {
+    rowsTop = 1
+    colsLeft = 1
+  }
+
+  hotInstance.updateSettings({
+    fixedRowsTop: rowsTop,
+    fixedColumnsLeft: colsLeft
+  })
+}
 
 const applyStyleToActive = (className) => {
   if (!hotRef.value) return
@@ -429,7 +399,7 @@ const fetchSpreadsheetDetail = async () => {
           if (!hotInstance.isEditing || !hotInstance.isEditing()) {
             hotInstance.loadData(activeSheet.rows)
             applySheetStyles(hotInstance, activeSheet)
-            hotInstance.updateSettings({ cells: hotSettings.value.cells })
+            updateFreezePanes()
           }
         }
       }
@@ -522,7 +492,7 @@ const switchSheet = (sheetName) => {
       if (!hotInstance.isEditing || !hotInstance.isEditing()) {
         hotInstance.loadData(targetSheet.rows)
         applySheetStyles(hotInstance, targetSheet)
-        hotInstance.updateSettings({ cells: hotSettings.value.cells })
+        updateFreezePanes()
       }
     }
   }, 50)
@@ -532,51 +502,11 @@ const addNewSheet = () => {
   const sheetKeys = Object.keys(allSheets.value)
   const newSheetName = `Sheet${sheetKeys.length + 1}`
   allSheets.value[newSheetName] = {
-    rows: Array.from({ length: 60 }, () => Array(20).fill('')),
+    rows: Array.from({ length: 200 }, () => Array(20).fill('')),
     styles: {},
     cellOwners: {}
   }
   switchSheet(newSheetName)
-}
-
-const openProtectModal = () => { showProtectModal.value = true; fetchProtectedRanges(); }
-const closeProtectModal = () => { showProtectModal.value = false; }
-const formattedSelectedRangeLabel = computed(() => {
-  const startColLetter = String.fromCharCode(65 + lastSelectedRange.startCol)
-  const endColLetter = String.fromCharCode(65 + lastSelectedRange.endCol)
-  return `${startColLetter}${lastSelectedRange.startRow + 1} sampai ${endColLetter}${lastSelectedRange.endRow + 1}`
-})
-
-const fetchProtectedRanges = async () => {
-  try {
-    const res = await $api(`/spreadsheets/${route.params.id}/protected-ranges`)
-    if (res.success) protectedRanges.value = res.data
-  } catch (err) {}
-}
-
-const saveProtectedRange = async () => {
-  try {
-    const payload = {
-      sheet_name: currentSheetName.value,
-      start_row: lastSelectedRange.startRow,
-      end_row: lastSelectedRange.endRow,
-      start_col: lastSelectedRange.startCol,
-      end_col: lastSelectedRange.endCol
-    }
-    const res = await $api(`/spreadsheets/${route.params.id}/protected-ranges`, { method: 'POST', body: payload })
-    if (res.success) {
-      alert('Berhasil mengunci rentang sel!')
-      fetchProtectedRanges()
-    }
-  } catch (err) { alert('Gagal memproteksi rentang.') }
-}
-
-const deleteProtectedRange = async (rangeId) => {
-  if (!confirm('Yakin ingin membuka kunci area ini?')) return
-  try {
-    await $api(`/spreadsheets/protected-ranges/${rangeId}`, { method: 'DELETE' })
-    fetchProtectedRanges()
-  } catch (err) {}
 }
 
 onMounted(async () => {
@@ -611,7 +541,6 @@ onMounted(async () => {
 
   setTimeout(async () => {
     await fetchSpreadsheetDetail()
-    await fetchProtectedRanges()
   }, 150)
 })
 
@@ -633,11 +562,12 @@ onBeforeUnmount(() => {
 .user-avatar-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
 .btn-back { text-decoration: none; color: #475569; padding: 6px 12px; background: #f1f5f9; border-radius: 6px; font-size: 13px; font-weight: 600; }
 .btn-excel-save { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
-.btn-protect-action { background: #fef08a !important; color: #854d0e !important; border: 1px solid #fde047 !important; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.wps-ribbon-toolbar { display: flex; align-items: center; background: #f1f5f9; border: 1px solid #e2e8f0; border-top: none; padding: 8px 16px; gap: 10px; }
+.wps-ribbon-toolbar { display: flex; align-items: center; background: #f1f5f9; border: 1px solid #e2e8f0; border-top: none; padding: 8px 16px; gap: 10px; flex-wrap: wrap; }
 .ribbon-group { display: flex; gap: 4px; align-items: center; }
 .ribbon-btn { background: #fff; border: 1px solid #cbd5e1; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
 .ribbon-divider { width: 1px; height: 22px; background: #cbd5e1; }
+.freeze-control-group { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #475569; }
+.freeze-select { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; font-size: 12px; cursor: pointer; }
 .spreadsheet-body-card { background: #fff; border: 1px solid #e2e8f0; border-top: none; padding: 16px; }
 .sheet-tabs-bar { background: #f1f5f9; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 8px 16px; display: flex; }
 .sheet-tabs-list { display: flex; gap: 6px; }
@@ -679,11 +609,6 @@ onBeforeUnmount(() => {
 .spreadsheet-body-card :deep(.cell-owned-by-other):not(.bg-yellow):not(.bg-green):not(.bg-blue) { 
   background-color: #f1f5f9 !important; 
   color: #64748b !important; 
-  cursor: not-allowed !important; 
-}
-.spreadsheet-body-card :deep(.cell-protected-range):not(.bg-yellow):not(.bg-green):not(.bg-blue) { 
-  background-color: #f1f5f9 !important; 
-  color: #94a3b8 !important; 
   cursor: not-allowed !important; 
 }
 </style>
