@@ -165,6 +165,35 @@ const hotSettings = ref({
   width: '100%',
   formulas: { engine: hyperFormulaInstance },
 
+  // 💡 Konfigurasi Context Menu (Klik Kanan) Dinamis Berdasarkan Hak Akses Owner
+  contextMenu: computed(() => {
+    if (isOwner.value) {
+      // Jika yang login adalah Owner, berikan akses penuh untuk insert/delete baris & kolom
+      return [
+        'row_above',
+        'row_below',
+        '---------',
+        'col_left',
+        'col_right',
+        '---------',
+        'remove_row',
+        'remove_col',
+        '---------',
+        'undo',
+        'redo',
+        'clear_column'
+      ];
+    } else {
+      // Jika yang login adalah Staf, menu ubah struktur tabel disembunyikan agar data tidak kacau
+      return [
+        'undo',
+        'redo',
+        '---------',
+        'clear_column'
+      ];
+    }
+  }),
+
   // Default awal diset ke 1 baris & 1 kolom
   fixedRowsTop: 1,
   fixedColumnsLeft: 1,
