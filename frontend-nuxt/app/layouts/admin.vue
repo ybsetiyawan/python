@@ -94,13 +94,34 @@
           <!-- Dropdown Hasil Pencarian Aman dari Terpotong -->
           <v-card class="elevation-6 rounded-xl pa-2" width="340">
             <div v-if="searchResults.length > 0">
-              <div v-for="item in searchResults" :key="item.id" class="search-result-row"
-                @click="selectSearchResult(item)">
-                <div class="result-info">
-                  <span class="result-title">{{ item.title }}</span>
-                  <span class="result-type">{{ item.type === 'spreadsheet' ? '📊 Spreadsheet' : '📝 Formulir' }}</span>
+              <div v-for="item in searchResults" :key="item.id" class="search-result-row pa-2.5 mb-2 rounded-lg"
+                @click="selectSearchResult(item)"
+                style="cursor: pointer; background: #ffffff; border: 1px solid #e0e0e0; transition: all 0.2s;">
+
+                <div class="d-flex flex-column">
+                  <!-- Baris Atas: Kategori & Pembuat -->
+                  <div class="d-flex align-center justify-space-between mb-1">
+                    <v-chip size="x-small" :color="item.type === 'spreadsheet' ? 'success' : 'primary'" variant="flat"
+                      class="font-weight-bold text-white px-2">
+                      {{ item.type === 'spreadsheet' ? '📊 Spreadsheet' : '📝 Formulir' }}
+                    </v-chip>
+
+                    <span v-if="item.created_by" class="text-caption text-grey-darken-2 font-weight-medium">
+                      👤 {{ item.created_by }}
+                    </span>
+                  </div>
+
+                  <!-- Judul Dokumen -->
+                  <span class="font-weight-bold text-body-2 text-grey-darken-4 mt-1">{{ item.title }}</span>
+
+                  <!-- ID Lengkap di Bawah -->
+                  <div
+                    class="text-caption font-monospace mt-2 px-2 py-0.5 rounded text-primary-darken-2 bg-primary-lighten-5"
+                    style="font-size: 10px; width: fit-content; border: 1px dashed rgba(var(--v-theme-primary), 0.3);">
+                    ID: {{ item.id }}
+                  </div>
                 </div>
-                <span class="result-id">ID: {{ item.id.substring(0, 6) }}...</span>
+
               </div>
             </div>
             <div v-else class="text-center py-3 text-slate-400 text-caption">
@@ -280,10 +301,10 @@ const fetchSidebarMenus = async () => {
 function isActionMenu(menu: any) {
   const path = menu.path || "";
   const name = menu.name.toLowerCase();
-  
+
   return (
-    path.includes('/export') || 
-    name.includes('ekspor') || 
+    path.includes('/export') ||
+    name.includes('ekspor') ||
     name.includes('export') ||
     path.includes('/bentopdf') ||
     name.includes('pdf') ||

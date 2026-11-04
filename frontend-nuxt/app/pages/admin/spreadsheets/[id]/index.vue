@@ -1,6 +1,6 @@
 <template>
   <div class="spreadsheet-container-full">
-    <!-- Jika Spreadsheet Tidak Ditemukan / Sudah Dihapus -->
+    <!-- Jika Spreadsheet Tidak Ditemukan -->
     <div v-if="isNotFound" class="not-found-card">
       <div class="not-found-icon">🗑️</div>
       <h2>Spreadsheet Tidak Ditemukan</h2>
@@ -18,7 +18,7 @@
             <input type="text" v-model="spreadsheet.title" class="sheet-title-input" placeholder="Judul Spreadsheet..." />
             <span class="badge-mode">Live Spreadsheet (Collab)</span>
             
-            <!-- 💡 Menampilkan Info User yang Sedang Login di Sebelah Badge Collab -->
+            <!-- Info User yang Sedang Login -->
             <div v-if="currentUser.name" class="current-user-pill" :title="'Login sebagai: ' + currentUser.name">
               <span class="user-avatar-dot"></span>
               <span class="user-name-text">{{ currentUser.name }}</span>
@@ -26,76 +26,34 @@
           </div>
         </div>
         <div class="header-right">
-          <!-- Tombol Proteksi hanya muncul jika user adalah Pemilik (Owner) -->
           <button v-if="isOwner" type="button" class="ribbon-btn btn-protect-action mr-3" @click="openProtectModal">
             🔒 Proteksi Rentang
           </button>
-          <span v-if="saveStatus" class="mr-6 save-status-text" :class="{ 'text-success': saveStatus === 'Tersimpan!' || saveStatus === 'File tersimpan' || saveStatus === 'Tersimpan otomatis' }">{{ saveStatus }}</span>
+          <span v-if="saveStatus" class="mr-6 save-status-text" :class="{ 'text-success': saveStatus.includes('Tersimpan') }">{{ saveStatus }}</span>
           <button class="btn-excel-save" @click="saveData(false)">💾 Simpan Perubahan</button>
         </div>
       </div>
 
-      <!-- WPS Office / Excel Style Ribbon Toolbar -->
+      <!-- WPS Office / Excel Style Ribbon Toolbar dengan Ikon Baru -->
       <div class="wps-ribbon-toolbar">
         <div class="ribbon-group">
           <button type="button" class="ribbon-btn" title="Undo" @click="triggerUndo">↩️ Undo</button>
           <button type="button" class="ribbon-btn" title="Redo" @click="triggerRedo">↪️ Redo</button>
         </div>
         <div class="ribbon-divider"></div>
-
         <div class="ribbon-group">
           <button type="button" class="ribbon-btn font-bold" title="Tebal (Bold)" @click="applyStyleToActive('ht-bold')"><b>B</b></button>
           <button type="button" class="ribbon-btn font-italic" title="Miring (Italic)" @click="applyStyleToActive('ht-italic')"><i>I</i></button>
         </div>
         <div class="ribbon-divider"></div>
-
         <div class="ribbon-group">
           <button type="button" class="ribbon-btn" title="Border Penuh" @click="applyStyleToActive('cell-border-all')">🔲 Border</button>
-          <button type="button" class="ribbon-btn color-swatch yellow" title="Bg Kuning" @click="applyStyleToActive('bg-yellow')"></button>
-          <button type="button" class="ribbon-btn color-swatch green" title="Bg Hijau" @click="applyStyleToActive('bg-green')"></button>
-          <button type="button" class="ribbon-btn color-swatch blue" title="Bg Biru" @click="applyStyleToActive('bg-blue')"></button>
-          <button type="button" class="ribbon-btn text-danger" title="Hapus Format" @click="clearFormatting">🧹 Clear</button>
-        </div>
-        <div class="ribbon-divider"></div>
-
-        <!-- Tombol Formula Pintas -->
-        <div class="ribbon-group">
-          <button type="button" class="ribbon-btn formula-tag" @click="insertFormula('SUM')">∑ SUM (Blok)</button>
-          <button type="button" class="ribbon-btn formula-tag" @click="insertFormula('AVERAGE')">AVERAGE (Blok)</button>
-          <button type="button" class="ribbon-btn formula-tag" @click="insertFormula('COUNT')">COUNT (Blok)</button>
-          <button type="button" class="ribbon-btn formula-tag" @click="insertFormula('VLOOKUP')">🔍 VLOOKUP</button>
-        </div>
-      </div>
-
-      <!-- Formula Bar (fx) Utama -->
-      <div class="formula-ribbon-outer">
-        <div class="formula-ribbon">
-          <div class="formula-fx-label">fx</div>
-          <input 
-            type="text" 
-            ref="formulaInputRef"
-            v-model="formulaInput" 
-            class="formula-bar-input" 
-            placeholder="Ketik rumus atau klik tombol rumus di atas..."
-            @input="onFormulaInput"
-            @focus="isFormulaFocused = true"
-            @blur="handleFormulaBlur"
-            @keyup.enter="applyFormula"
-          />
-          <button type="button" class="btn-apply-formula" @click="applyFormula">Terapkan ke Sel</button>
-        </div>
-
-        <!-- Kotak Dropdown Auto-Complete Rumus -->
-        <div v-if="showSuggestions && filteredFormulas.length > 0" class="formula-suggestions-dropdown">
-          <div 
-            v-for="(item, index) in filteredFormulas" 
-            :key="index"
-            class="suggestion-item"
-            @mousedown.prevent="selectSuggestion(item)"
-          >
-            <span class="suggestion-name">{{ item.name }}</span>
-            <span class="suggestion-desc">{{ item.desc }}</span>
-          </div>
+          <!-- Tombol Warna Background dengan Ikon Cat (🎨) -->
+          <button type="button" class="ribbon-btn color-swatch yellow" title="Bg Kuning" @click="applyStyleToActive('bg-yellow')">🎨🟡</button>
+          <button type="button" class="ribbon-btn color-swatch green" title="Bg Hijau" @click="applyStyleToActive('bg-green')">🎨🟢</button>
+          <button type="button" class="ribbon-btn color-swatch blue" title="Bg Biru" @click="applyStyleToActive('bg-blue')">🎨🔵</button>
+          <!-- Tombol Hapus Format dengan Ikon Penghapus (🧹) -->
+          <button type="button" class="ribbon-btn text-danger" title="Hapus Format / Clear" @click="clearFormatting">🧹 Clear Format</button>
         </div>
       </div>
 
@@ -198,9 +156,7 @@ import 'handsontable/styles/ht-theme-main.min.css'
 registerAllModules()
 registerAllCellTypes()
 
-definePageMeta({
-  layout: false, // 💡 Menonaktifkan layout admin agar halaman memenuhi layar penuh (full-width)
-})
+definePageMeta({ layout: false })
 
 const route = useRoute()
 const router = useRouter()
@@ -208,19 +164,16 @@ const { $api } = useNuxtApp()
 
 const spreadsheet = ref({ title: '', description: '', created_by: null })
 const hotRef = ref(null)
-const formulaInputRef = ref(null)
 const isMounted = ref(false)
 const saveStatus = ref('')
-const formulaInput = ref('')
 const isNotFound = ref(false)
 
 let lastSelectedRange = { startRow: 0, startCol: 0, endRow: 0, endCol: 0 }
-const isFormulaFocused = ref(false)
-
 let socket = null
 let autoSaveTimer = null
-const lockedRows = ref({})
 const currentUser = ref({ id: null, name: 'Staf Cabang' })
+
+const lockedRows = ref({})
 const warningMessage = ref('')
 let warningTimeout = null
 let activeRowLockedByMe = null
@@ -230,61 +183,19 @@ const allSheets = ref({
   'Sheet1': {
     rows: Array.from({ length: 60 }, () => Array(20).fill('')),
     styles: {},
-    rowOwners: {}
+    cellOwners: {}
   }
 })
 
 const showProtectModal = ref(false)
 const protectedRanges = ref([])
 
-// Computed: Mengecek apakah user yang sedang login adalah pemilik (owner) spreadsheet
 const isOwner = computed(() => {
   if (!spreadsheet.value.created_by || !currentUser.value.id) return false
   return String(spreadsheet.value.created_by) === String(currentUser.value.id)
 })
 
-const availableFormulas = [
-  { name: '=SUM(', desc: 'Menjumlahkan rentang sel (contoh: =SUM(B4:B8))' },
-  { name: '=AVERAGE(', desc: 'Menghitung rata-rata nilai' },
-  { name: '=COUNT(', desc: 'Menghitung jumlah sel angka' },
-  { name: '=VLOOKUP(', desc: 'Pencarian data vertikal' },
-  { name: '=HLOOKUP(', desc: 'Pencarian data horizontal' },
-  { name: '=MAX(', desc: 'Nilai terbesar' },
-  { name: '=MIN(', desc: 'Nilai terkecil' },
-  { name: '=IF(', desc: 'Logika bersyarat' }
-]
-
-const filteredFormulas = ref([])
-const showSuggestions = ref(false)
-const rowOwners = ref({})
-
-const onFormulaInput = () => {
-  const val = formulaInput.value.trim()
-  if (val.startsWith('=')) {
-    const keyword = val.substring(1).toUpperCase()
-    filteredFormulas.value = availableFormulas.filter(f => f.name.toUpperCase().includes(keyword))
-    showSuggestions.value = filteredFormulas.value.length > 0
-  } else {
-    showSuggestions.value = false
-  }
-}
-
-const selectSuggestion = (item) => {
-  formulaInput.value = item.name
-  showSuggestions.value = false
-  if (formulaInputRef.value) formulaInputRef.value.focus()
-}
-
-const handleFormulaBlur = () => {
-  setTimeout(() => {
-    showSuggestions.value = false
-    isFormulaFocused.value = false
-  }, 250)
-}
-
-const hyperFormulaInstance = markRaw(HyperFormula.buildEmpty({
-  licenseKey: 'gpl-v3'
-}))
+const hyperFormulaInstance = markRaw(HyperFormula.buildEmpty({ licenseKey: 'gpl-v3' }))
 
 const hotSettings = ref({
   data: allSheets.value['Sheet1'].rows,
@@ -295,42 +206,51 @@ const hotSettings = ref({
   manualColumnResize: true,
   manualRowResize: true,
   stretchH: 'all',
-  height: '700px', // 💡 Diperbesar sedikit agar lebih leluasa di layar penuh
+  height: '700px',
   width: '100%',
-  formulas: {
-    engine: hyperFormulaInstance
-  },
+  formulas: { engine: hyperFormulaInstance },
+
   afterChange: (changes, source) => {
     if (source === 'loadData' || !changes) return
 
-    const myId = currentUser.value?.id
+    const myId = String(currentUser.value?.id || '')
+    const currentSheet = allSheets.value[currentSheetName.value]
+
+    if (!currentSheet.cellOwners) {
+      currentSheet.cellOwners = {}
+    }
+
     if (myId && !isOwner.value) {
-      for (const [row] of changes) {
-        const rowStr = String(row)
-        if (!rowOwners.value[rowStr]) {
-          rowOwners.value[rowStr] = myId
+      for (const [row, col, oldVal, newVal] of changes) {
+        const cellKey = `${row},${col}`
+        const hasContent = newVal !== null && newVal !== undefined && String(newVal).trim() !== ''
+        
+        if (hasContent) {
+          if (!currentSheet.cellOwners[cellKey]) {
+            currentSheet.cellOwners[cellKey] = myId
+          }
+        } else {
+          if (currentSheet.cellOwners[cellKey] === myId) {
+            delete currentSheet.cellOwners[cellKey]
+          }
         }
-      }
-      if (allSheets.value[currentSheetName.value]) {
-        allSheets.value[currentSheetName.value].rowOwners = { ...rowOwners.value }
       }
     }
 
     saveStatus.value = 'Menyimpan otomatis...'
     if (autoSaveTimer) clearTimeout(autoSaveTimer)
-    autoSaveTimer = setTimeout(() => {
-      saveData(true)
-    }, 1500)
+    autoSaveTimer = setTimeout(() => { saveData(true) }, 1000)
   },
-  afterSelectionEnd: (row, column, row2, column2) => {
-    const targetRow = Math.min(row, row2);
 
+  afterSelectionEnd: (row, column, row2, column2) => {
     lastSelectedRange = {
-      startRow: targetRow,
+      startRow: Math.min(row, row2),
       startCol: Math.min(column, column2),
       endRow: Math.max(row, row2),
       endCol: Math.max(column, column2)
     };
+
+    const targetRow = Math.min(row, row2);
 
     if (activeRowLockedByMe !== null && activeRowLockedByMe !== targetRow) {
       if (socket) {
@@ -348,9 +268,7 @@ const hotSettings = ref({
       }, 4000);
 
       if (activeRowLockedByMe !== null) {
-        if (socket) {
-          socket.emit('unlock_row', { spreadsheetId: route.params.id, rowIndex: activeRowLockedByMe });
-        }
+        if (socket) socket.emit('unlock_row', { spreadsheetId: route.params.id, rowIndex: activeRowLockedByMe });
         activeRowLockedByMe = null;
       }
     } else {
@@ -364,29 +282,32 @@ const hotSettings = ref({
         activeRowLockedByMe = targetRow;
       }
     }
-
-    const hotInstance = hotRef.value?.hotInstance;
-    if (hotInstance && !isFormulaFocused.value) {
-      const val = hotInstance.getDataAtCell(targetRow, column);
-      formulaInput.value = val !== null && val !== undefined ? String(val) : '';
-    }
   },
-cells: (row, column) => {
-    const cellProperties = {}
 
-    // 1. Jika user adalah pemilik utama spreadsheet, berikan akses penuh
+  // 💡 PERBAIKAN UTAMA: Sertakan customStyle (styles) di sini agar terbaca oleh siapa saja secara real-time
+  cells: (row, column) => {
+    const cellProperties = {}
+    const myId = String(currentUser.value?.id || '')
+    const currentSheet = allSheets.value[currentSheetName.value] || {}
+    const cellOwners = currentSheet.cellOwners || {}
+    const cellKey = `${row},${column}`
+    let ownerOfCell = cellOwners[cellKey] ? String(cellOwners[cellKey]) : null
+
+    // Ambil style kustom (border, bold, background) yang tersimpan
+    let customStyle = currentSheet.styles && currentSheet.styles[cellKey] ? currentSheet.styles[cellKey] : ''
+
+    if (lockedRows.value[row] && String(lockedRows.value[row].userId) !== myId) {
+      cellProperties.className = (customStyle + ' row-locked-by-other').trim()
+      cellProperties.readOnly = isOwner.value ? false : true 
+      return cellProperties
+    }
+
     if (isOwner.value) {
-      cellProperties.className = ''
+      cellProperties.className = customStyle
       cellProperties.readOnly = false
       return cellProperties
     }
 
-    const myId = currentUser.value?.id
-    const rowStr = String(row)
-    let ownerId = rowOwners.value[rowStr] || rowOwners.value[row]
-
-    // 2. 🛡️ CEK PROTEKSI ADMIN (Protected Ranges)
-    // Otomatis mengunci kolom-kolom master (seperti Nama, Alamat, PIC) yang dikunci oleh Owner
     const isProtected = protectedRanges.value.some(range => {
       return range.sheet_name === currentSheetName.value &&
              row >= range.start_row && row <= range.end_row &&
@@ -394,220 +315,134 @@ cells: (row, column) => {
     })
 
     if (isProtected) {
-      cellProperties.className = 'cell-protected-range'
+      cellProperties.className = (customStyle + ' cell-protected-range').trim()
       cellProperties.readOnly = true
       return cellProperties
     }
 
-    // 3. Cek kunci real-time WebSocket (jika sedang disunting user lain)
-    if (lockedRows.value[row] && String(lockedRows.value[row].userId) !== String(myId)) {
-      cellProperties.className = 'row-locked-by-other'
+    if (ownerOfCell && ownerOfCell !== myId) {
+      cellProperties.className = (customStyle + ' cell-owned-by-other').trim()
       cellProperties.readOnly = true
       return cellProperties
     }
 
-    // 4. 🛡️ KONTROL KEPEMILIKAN BARIS UNTUK AREA USER
-    // Jika baris ini sudah diklaim/diisi oleh user lain di area isian mereka, kunci untuk user lain!
-    if (ownerId && String(ownerId) !== String(myId)) {
-      cellProperties.className = 'row-owned-by-other'
-      cellProperties.readOnly = true
-      return cellProperties
-    }
-
-    cellProperties.className = ''
+    cellProperties.className = customStyle
     cellProperties.readOnly = false
     return cellProperties
-  },
-  beforeRemoveRow: (index, amount) => {
-    if (isOwner.value) return true;
-
-    const myId = currentUser.value?.id;
-    for (let i = 0; i < amount; i++) {
-      const rowIndex = index + i;
-      const ownerId = rowOwners.value[String(rowIndex)] || rowOwners.value[rowIndex];
-      const isMyRow = ownerId && myId && String(ownerId) === String(myId);
-
-      if (ownerId && !isMyRow) {
-        alert('Aksi ditolak! Anda tidak dapat menghapus baris milik pengguna lain.');
-        return false;
-      }
-    }
-  },
-cells: (row, column) => {
-    const cellProperties = {}
-
-    // 1. Jika user adalah pemilik utama spreadsheet, berikan akses penuh
-    if (isOwner.value) {
-      cellProperties.className = ''
-      cellProperties.readOnly = false
-      return cellProperties
-    }
-
-    const myId = currentUser.value?.id
-    const rowStr = String(row)
-    let ownerId = rowOwners.value[rowStr] || rowOwners.value[row]
-
-    // 2. 🛡️ CEK PROTEKSI ADMIN (Protected Ranges)
-    // Otomatis mengunci kolom-kolom master (seperti Nama, Alamat, PIC) yang dikunci oleh Owner
-    const isProtected = protectedRanges.value.some(range => {
-      return range.sheet_name === currentSheetName.value &&
-             row >= range.start_row && row <= range.end_row &&
-             column >= range.start_col && column <= range.end_col
-    })
-
-    if (isProtected) {
-      cellProperties.className = 'cell-protected-range'
-      cellProperties.readOnly = true
-      return cellProperties
-    }
-
-    // 3. Cek kunci real-time WebSocket (jika sedang disunting user lain)
-    if (lockedRows.value[row] && String(lockedRows.value[row].userId) !== String(myId)) {
-      cellProperties.className = 'row-locked-by-other'
-      cellProperties.readOnly = true
-      return cellProperties
-    }
-
-    // 4. 🛡️ KONTROL KEPEMILIKAN BARIS UNTUK AREA USER
-    // Jika baris ini sudah diklaim/diisi oleh user lain di area isian mereka, kunci untuk user lain!
-    if (ownerId && String(ownerId) !== String(myId)) {
-      cellProperties.className = 'row-owned-by-other'
-      cellProperties.readOnly = true
-      return cellProperties
-    }
-
-    cellProperties.className = ''
-    cellProperties.readOnly = false
-    return cellProperties
-  },
-  contextMenu: {
-    items: {
-      'protect_range_menu': {
-        name: '🔒 Proteksi Rentang Ini',
-        hidden: function() { return !isOwner.value; }
-      },
-      'sep_protect': {
-        hidden: function() { return !isOwner.value; },
-        name: '---------'
-      },
-      'row_above': { 
-        name: 'Sisipkan Baris di Atas',
-        hidden: function() { return !isOwner.value; }
-      },
-      'row_below': { 
-        name: 'Sisipkan Baris di Bawah',
-        hidden: function() { return !isOwner.value; }
-      },
-      'remove_row': { 
-        name: 'Hapus Baris',
-        hidden: function() { return !isOwner.value; }
-      },
-      'col_left': { 
-        name: 'Sisipkan Kolom di Kiri',
-        hidden: function() { return !isOwner.value; }
-      },
-      'col_right': { 
-        name: 'Sisipkan Kolom di Kanan',
-        hidden: function() { return !isOwner.value; }
-      },
-      'remove_col': { 
-        name: 'Hapus Kolom',
-        hidden: function() { return !isOwner.value; }
-      },
-      'sep1': {
-        hidden: function() { return !isOwner.value; },
-        name: '---------'
-      },
-      'make_bold': {
-        name: '<b>Tebal (Bold)</b>',
-        hidden: function() { return !isOwner.value; },
-        callback: function (key, selection) { applyStyleToSelection(this, selection, 'ht-bold') }
-      },
-      'make_italic': {
-        name: '<i>Miring (Italic)</i>',
-        hidden: function() { return !isOwner.value; },
-        callback: function (key, selection) { applyStyleToSelection(this, selection, 'ht-italic') }
-      },
-      'sep2': {
-        hidden: function() { return !isOwner.value; },
-        name: '---------'
-      },
-      'border_all': {
-        name: '🔲 Border Penuh (Kotak)',
-        hidden: function() { return !isOwner.value; },
-        callback: function (key, selection) { applyStyleToSelection(this, selection, 'cell-border-all') }
-      },
-      'bg_yellow': {
-        name: '🎨 Background Kuning',
-        hidden: function() { return !isOwner.value; },
-        callback: function (key, selection) { applyStyleToSelection(this, selection, 'bg-yellow') }
-      },
-      'bg_green': {
-        name: '🎨 Background Hijau',
-        hidden: function() { return !isOwner.value; },
-        callback: function (key, selection) { applyStyleToSelection(this, selection, 'bg-green') }
-      },
-      'bg_blue': {
-        name: '🎨 Background Biru',
-        hidden: function() { return !isOwner.value; },
-        callback: function (key, selection) { applyStyleToSelection(this, selection, 'bg-blue') }
-      },
-      'clear_format': {
-        name: '🧹 Hapus Format & Border',
-        hidden: function() { return !isOwner.value; },
-        callback: function (key, selection) {
-          const range = selection[0]
-          for (let r = range.start.row; r <= range.end.row; r++) {
-            for (let c = range.start.col; c <= range.end.col; c++) {
-              this.setCellMeta(r, c, 'className', '')
-            }
-          }
-          this.render()
-        }
-      },
-      'sep3': {
-        hidden: function() { return !isOwner.value; },
-        name: '---------'
-      },
-      'copy': {},
-      'cut': {
-        hidden: function() { return !isOwner.value; },
-        name: '---------'
-      }
-    }
   },
   licenseKey: 'non-commercial-and-evaluation'
 })
 
-const insertFormula = (funcName) => {
-  const startColLetter = String.fromCharCode(65 + lastSelectedRange.startCol)
-  const endColLetter = String.fromCharCode(65 + lastSelectedRange.endCol)
-  const startRow = lastSelectedRange.startRow + 1
-  const endRow = lastSelectedRange.endRow + 1
-
-  const rangeStr = (lastSelectedRange.startCol === lastSelectedRange.endCol && lastSelectedRange.startRow === lastSelectedRange.endRow)
-    ? `${startColLetter}${startRow}`
-    : `${startColLetter}${startRow}:${endColLetter}${endRow}`
-
-  let formulaText = `=SUM(${rangeStr})`
-  if (funcName === 'AVERAGE') formulaText = `=AVERAGE(${rangeStr})`
-  else if (funcName === 'COUNT') formulaText = `=COUNT(${rangeStr})`
-  else if (funcName === 'VLOOKUP') formulaText = `=VLOOKUP(A1, ${rangeStr}, 2, FALSE)`
-
-  formulaInput.value = formulaText
-  showSuggestions.value = false
-  if (formulaInputRef.value) formulaInputRef.value.focus()
-}
-
-const applyFormula = () => {
+const applyStyleToActive = (className) => {
   if (!hotRef.value) return
   const hotInstance = hotRef.value.hotInstance
-  const { endRow, endCol } = lastSelectedRange
-  hotInstance.setDataAtCell(endRow, endCol, formulaInput.value)
-  showSuggestions.value = false
+  const { startRow, startCol, endRow, endCol } = lastSelectedRange
+  
+  const currentSheet = allSheets.value[currentSheetName.value]
+  if (!currentSheet.styles) currentSheet.styles = {}
+
+  for (let r = startRow; r <= endRow; r++) {
+    for (let c = startCol; c <= endCol; c++) {
+      const cellKey = `${r},${c}`
+      const cellMeta = hotInstance.getCellMeta(r, c)
+      let currentClass = (cellMeta.className || '').replace('row-locked-by-other', '').trim()
+
+      if (className.startsWith('bg-')) {
+        currentClass = currentClass.split(' ').filter(cls => !cls.startsWith('bg-')).join(' ')
+      }
+      
+      let newClass = currentClass
+      if (!currentClass.includes(className)) {
+        newClass = (currentClass + ' ' + className).trim()
+      }
+      
+      hotInstance.setCellMeta(r, c, 'className', newClass)
+      currentSheet.styles[cellKey] = newClass
+    }
+  }
+  hotInstance.render()
+  saveData(true)
+}
+
+const clearFormatting = () => {
+  if (!hotRef.value) return
+  const hotInstance = hotRef.value.hotInstance
+  const { startRow, startCol, endRow, endCol } = lastSelectedRange
+  
+  const currentSheet = allSheets.value[currentSheetName.value]
+  if (!currentSheet.styles) currentSheet.styles = {}
+
+  for (let r = startRow; r <= endRow; r++) {
+    for (let c = startCol; c <= endCol; c++) {
+      const cellKey = `${r},${c}`
+      hotInstance.setCellMeta(r, c, 'className', '')
+      delete currentSheet.styles[cellKey]
+    }
+  }
+  hotInstance.render()
+  saveData(true)
+}
+
+const triggerUndo = () => {
+  if (hotRef.value?.hotInstance?.getPlugin('undoRedo')?.isUndoAvailable()) {
+    hotRef.value.hotInstance.getPlugin('undoRedo').undo()
+  }
+}
+
+const triggerRedo = () => {
+  if (hotRef.value?.hotInstance?.getPlugin('undoRedo')?.isRedoAvailable()) {
+    hotRef.value.hotInstance.getPlugin('undoRedo').redo()
+  }
+}
+
+const fetchSpreadsheetDetail = async () => {
+  if (hotRef.value && hotRef.value.hotInstance) {
+    const hotInstance = hotRef.value.hotInstance
+    if (hotInstance.isEditing && hotInstance.isEditing()) return;
+  }
+
+  try {
+    const res = await $api(`/spreadsheets/${route.params.id}`)
+    if (res.success && res.data) {
+      spreadsheet.value = res.data
+      const content = res.data.data_content
+      
+      if (content && content.sheets) {
+        for (const sName in content.sheets) {
+          const sh = content.sheets[sName]
+          const normalizedCellOwners = {}
+          if (sh.cellOwners && typeof sh.cellOwners === 'object') {
+            for (const cKey in sh.cellOwners) {
+              normalizedCellOwners[String(cKey)] = String(sh.cellOwners[cKey])
+            }
+          }
+          sh.cellOwners = normalizedCellOwners
+        }
+        allSheets.value = content.sheets
+
+        const targetSheetName = allSheets.value[currentSheetName.value] ? currentSheetName.value : Object.keys(allSheets.value)[0]
+        currentSheetName.value = targetSheetName
+
+        const activeSheet = allSheets.value[targetSheetName]
+        if (hotRef.value && hotRef.value.hotInstance) {
+          const hotInstance = hotRef.value.hotInstance
+          if (!hotInstance.isEditing || !hotInstance.isEditing()) {
+            hotInstance.loadData(activeSheet.rows)
+            applySheetStyles(hotInstance, activeSheet)
+            hotInstance.updateSettings({ cells: hotSettings.value.cells })
+          }
+        }
+      }
+    } else {
+      isNotFound.value = true
+    }
+  } catch (err) {
+    isNotFound.value = true
+  }
 }
 
 const applySheetStyles = (hotInstance, targetSheet) => {
+  if (!hotInstance) return
   const totalRows = hotInstance.countRows()
   const totalCols = hotInstance.countCols()
   
@@ -617,190 +452,13 @@ const applySheetStyles = (hotInstance, targetSheet) => {
     }
   }
 
-  if (targetSheet.styles) {
+  if (targetSheet && targetSheet.styles) {
     for (const key in targetSheet.styles) {
       const [r, c] = key.split(',').map(Number)
       hotInstance.setCellMeta(r, c, 'className', targetSheet.styles[key])
     }
   }
   hotInstance.render()
-}
-
-const switchSheet = (sheetName) => {
-  if (currentSheetName.value === sheetName) return
-  
-  if (hotRef.value && hotRef.value.hotInstance) {
-    const hotInstance = hotRef.value.hotInstance
-    allSheets.value[currentSheetName.value].rows = hotInstance.getData()
-    allSheets.value[currentSheetName.value].rowOwners = { ...rowOwners.value }
-    
-    const stylesMap = {}
-    const totalRows = hotInstance.countRows()
-    const totalCols = hotInstance.countCols()
-    for (let r = 0; r < totalRows; r++) {
-      for (let c = 0; c < totalCols; c++) {
-        const meta = hotInstance.getCellMeta(r, c)
-        if (meta && meta.className && meta.className.trim() !== '') {
-          let cleanClass = meta.className.replace('row-locked-by-other', '').trim()
-          if (cleanClass) stylesMap[`${r},${c}`] = cleanClass
-        }
-      }
-    }
-    allSheets.value[currentSheetName.value].styles = stylesMap
-  }
-
-  currentSheetName.value = sheetName
-  
-  const targetSheet = allSheets.value[sheetName]
-  rowOwners.value = targetSheet && targetSheet.rowOwners ? { ...targetSheet.rowOwners } : {}
-  
-  setTimeout(() => {
-    if (hotRef.value && hotRef.value.hotInstance) {
-      const hotInstance = hotRef.value.hotInstance
-      hotInstance.loadData(targetSheet.rows)
-      applySheetStyles(hotInstance, targetSheet)
-      hotInstance.updateSettings({ cells: hotSettings.value.cells })
-    }
-  }, 50)
-}
-
-const addNewSheet = () => {
-  const sheetKeys = Object.keys(allSheets.value)
-  const newSheetName = `Sheet${sheetKeys.length + 1}`
-  
-  allSheets.value[newSheetName] = {
-    rows: Array.from({ length: 60 }, () => Array(20).fill('')),
-    styles: {},
-    rowOwners: {}
-  }
-
-  switchSheet(newSheetName)
-}
-
-const applyStyleToSelection = (hotInstance, selection, className) => {
-  const range = selection[0]
-  for (let r = range.start.row; r <= range.end.row; r++) {
-    for (let c = range.start.col; c <= range.end.col; c++) {
-      const cellMeta = hotInstance.getCellMeta(r, c)
-      const currentClass = (cellMeta.className || '').replace('row-locked-by-other', '').trim()
-      if (!currentClass.includes(className)) {
-        hotInstance.setCellMeta(r, c, 'className', (currentClass + ' ' + className).trim())
-      }
-    }
-  }
-  hotInstance.render()
-}
-
-const applyStyleToActive = (className) => {
-  if (!hotRef.value || !lastSelectedRange) return
-  const hotInstance = hotRef.value.hotInstance
-
-  const { startRow, startCol, endRow, endCol } = lastSelectedRange
-  for (let r = startRow; r <= endRow; r++) {
-    for (let c = startCol; c <= endCol; c++) {
-      const cellMeta = hotInstance.getCellMeta(r, c)
-      const currentClass = (cellMeta.className || '').replace('row-locked-by-other', '').trim()
-      if (!currentClass.includes(className)) {
-        hotInstance.setCellMeta(r, c, 'className', (currentClass + ' ' + className).trim())
-      }
-    }
-  }
-  hotInstance.render()
-}
-
-const clearFormatting = () => {
-  if (!hotRef.value || !lastSelectedRange) return
-  const hotInstance = hotRef.value.hotInstance
-
-  const { startRow, startCol, endRow, endCol } = lastSelectedRange
-  for (let r = startRow; r <= endRow; r++) {
-    for (let c = startCol; c <= endCol; c++) {
-      hotInstance.setCellMeta(r, c, 'className', '')
-    }
-  }
-  hotInstance.render()
-}
-
-const triggerUndo = () => {
-  if (hotRef.value && hotRef.value.hotInstance) {
-    const undoRedoPlugin = hotRef.value.hotInstance.getPlugin('undoRedo')
-    if (undoRedoPlugin && undoRedoPlugin.isUndoAvailable()) {
-      undoRedoPlugin.undo()
-    }
-  }
-}
-
-const triggerRedo = () => {
-  if (hotRef.value && hotRef.value.hotInstance) {
-    const undoRedoPlugin = hotRef.value.hotInstance.getPlugin('undoRedo')
-    if (undoRedoPlugin && undoRedoPlugin.isRedoAvailable()) {
-      undoRedoPlugin.redo()
-    }
-  }
-}
-
-const fetchSpreadsheetDetail = async () => {
-  try {
-    const res = await $api(`/spreadsheets/${route.params.id}`)
-    if (res.success && res.data) {
-      spreadsheet.value = res.data
-      const content = res.data.data_content
-      
-      if (content) {
-        if (content.sheets && typeof content.sheets === 'object') {
-          for (const sName in content.sheets) {
-            const sh = content.sheets[sName]
-            const normalizedOwners = {}
-            if (sh.rowOwners && typeof sh.rowOwners === 'object') {
-              for (const rIdx in sh.rowOwners) {
-                normalizedOwners[String(rIdx)] = sh.rowOwners[rIdx]
-              }
-            }
-            sh.rowOwners = normalizedOwners
-          }
-          allSheets.value = content.sheets
-        } else if (content.rows && Array.isArray(content.rows)) {
-          allSheets.value['Sheet1'] = {
-            rows: content.rows,
-            styles: content.styles || {},
-            rowOwners: content.rowOwners || {}
-          }
-        }
-
-        const sheetKeys = Object.keys(allSheets.value)
-        const targetSheetName = sheetKeys.includes(currentSheetName.value) ? currentSheetName.value : sheetKeys[0] || 'Sheet1'
-        currentSheetName.value = targetSheetName
-
-        const activeSheet = allSheets.value[targetSheetName]
-        if (activeSheet && activeSheet.rowOwners) {
-          rowOwners.value = { ...activeSheet.rowOwners }
-        } else {
-          rowOwners.value = {}
-        }
-
-        if (hotRef.value && hotRef.value.hotInstance) {
-          const hotInstance = hotRef.value.hotInstance
-          hotInstance.loadData(activeSheet.rows)
-          applySheetStyles(hotInstance, activeSheet)
-          
-          hotInstance.updateSettings({
-            cells: hotSettings.value.cells
-          })
-          hotInstance.render()
-        } else {
-          hotSettings.value.data = activeSheet.rows
-        }
-      }
-    } else {
-      isNotFound.value = true
-    }
-  } catch (err) {
-    if (err.status === 404 || err.statusCode === 404 || (err.message && err.message.includes('404'))) {
-      isNotFound.value = true
-    } else {
-      console.error('Gagal memuat detail spreadsheet:', err)
-    }
-  }
 }
 
 const fetchCurrentUser = async () => {
@@ -810,15 +468,13 @@ const fetchCurrentUser = async () => {
       const user = JSON.parse(userDataStr)
       if (user && (user.id || user._id)) {
         currentUser.value = {
-          id: user.id || user._id,
+          id: String(user.id || user._id),
           name: user.name || 'User',
           email: user.email || ''
         }
       }
     }
-  } catch (err) {
-    console.error('Gagal mengambil profil user dari localStorage:', err)
-  }
+  } catch (err) {}
 }
 
 const saveData = async (isAutoSave = false) => {
@@ -826,23 +482,6 @@ const saveData = async (isAutoSave = false) => {
   const hotInstance = hotRef.value.hotInstance
 
   allSheets.value[currentSheetName.value].rows = hotInstance.getData()
-  allSheets.value[currentSheetName.value].rowOwners = { ...rowOwners.value }
-
-  const stylesMap = {}
-  const totalRows = hotInstance.countRows()
-  const totalCols = hotInstance.countCols()
-  for (let r = 0; r < totalRows; r++) {
-    for (let c = 0; c < totalCols; c++) {
-      const meta = hotInstance.getCellMeta(r, c)
-      if (meta && meta.className && meta.className.trim() !== '') {
-        let cleanClass = meta.className.replace('row-locked-by-other', '').trim()
-        if (cleanClass) {
-          stylesMap[`${r},${c}`] = cleanClass
-        }
-      }
-    }
-  }
-  allSheets.value[currentSheetName.value].styles = stylesMap
 
   saveStatus.value = isAutoSave ? 'Menyimpan...' : 'Menyimpan perubahan...'
   try {
@@ -851,33 +490,57 @@ const saveData = async (isAutoSave = false) => {
       body: {
         title: spreadsheet.value.title,
         description: spreadsheet.value.description || '',
-        data_content: { 
-          sheets: allSheets.value
-        }
+        currentUserId: String(currentUser.value.id),
+        data_content: { sheets: allSheets.value }
       }
     })
 
     if (socket) {
-      socket.emit('spreadsheet_saved', { spreadsheetId: route.params.id })
+      socket.emit('spreadsheet_saved', { 
+        spreadsheetId: route.params.id, 
+        updatedData: { sheets: allSheets.value } 
+      });
     }
 
     saveStatus.value = isAutoSave ? 'Tersimpan otomatis' : 'Tersimpan!'
     setTimeout(() => { saveStatus.value = '' }, 2000)
   } catch (err) {
     saveStatus.value = 'Gagal menyimpan'
-    console.error('Error saving spreadsheet:', err)
   }
 }
 
-const openProtectModal = () => {
-  showProtectModal.value = true
-  fetchProtectedRanges()
+const switchSheet = (sheetName) => {
+  if (currentSheetName.value === sheetName) return
+  if (hotRef.value && hotRef.value.hotInstance) {
+    allSheets.value[currentSheetName.value].rows = hotRef.value.hotInstance.getData()
+  }
+  currentSheetName.value = sheetName
+  const targetSheet = allSheets.value[sheetName]
+  setTimeout(() => {
+    if (hotRef.value && hotRef.value.hotInstance) {
+      const hotInstance = hotRef.value.hotInstance
+      if (!hotInstance.isEditing || !hotInstance.isEditing()) {
+        hotInstance.loadData(targetSheet.rows)
+        applySheetStyles(hotInstance, targetSheet)
+        hotInstance.updateSettings({ cells: hotSettings.value.cells })
+      }
+    }
+  }, 50)
 }
 
-const closeProtectModal = () => {
-  showProtectModal.value = false
+const addNewSheet = () => {
+  const sheetKeys = Object.keys(allSheets.value)
+  const newSheetName = `Sheet${sheetKeys.length + 1}`
+  allSheets.value[newSheetName] = {
+    rows: Array.from({ length: 60 }, () => Array(20).fill('')),
+    styles: {},
+    cellOwners: {}
+  }
+  switchSheet(newSheetName)
 }
 
+const openProtectModal = () => { showProtectModal.value = true; fetchProtectedRanges(); }
+const closeProtectModal = () => { showProtectModal.value = false; }
 const formattedSelectedRangeLabel = computed(() => {
   const startColLetter = String.fromCharCode(65 + lastSelectedRange.startCol)
   const endColLetter = String.fromCharCode(65 + lastSelectedRange.endCol)
@@ -887,15 +550,8 @@ const formattedSelectedRangeLabel = computed(() => {
 const fetchProtectedRanges = async () => {
   try {
     const res = await $api(`/spreadsheets/${route.params.id}/protected-ranges`)
-    if (res.success) {
-      protectedRanges.value = res.data
-      if (hotRef.value?.hotInstance) {
-        hotRef.value.hotInstance.render()
-      }
-    }
-  } catch (err) {
-    console.error('Gagal memuat protected ranges:', err)
-  }
+    if (res.success) protectedRanges.value = res.data
+  } catch (err) {}
 }
 
 const saveProtectedRange = async () => {
@@ -907,47 +563,28 @@ const saveProtectedRange = async () => {
       start_col: lastSelectedRange.startCol,
       end_col: lastSelectedRange.endCol
     }
-
-    const res = await $api(`/spreadsheets/${route.params.id}/protected-ranges`, {
-      method: 'POST',
-      body: payload
-    })
-
+    const res = await $api(`/spreadsheets/${route.params.id}/protected-ranges`, { method: 'POST', body: payload })
     if (res.success) {
       alert('Berhasil mengunci rentang sel!')
       fetchProtectedRanges()
     }
-  } catch (err) {
-    console.error('Gagal memproteksi rentang:', err)
-    alert('Terjadi kesalahan saat memproteksi rentang.')
-  }
+  } catch (err) { alert('Gagal memproteksi rentang.') }
 }
 
 const deleteProtectedRange = async (rangeId) => {
-  if (!confirm('Yakin ingin membuka kunci / melepas proteksi area ini?')) return
+  if (!confirm('Yakin ingin membuka kunci area ini?')) return
   try {
     await $api(`/spreadsheets/protected-ranges/${rangeId}`, { method: 'DELETE' })
     fetchProtectedRanges()
-  } catch (err) {
-    console.error('Gagal menghapus proteksi:', err)
-  }
-}
-
-const handleKeydown = (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-    e.preventDefault()
-    saveData(true)
-  }
+  } catch (err) {}
 }
 
 onMounted(async () => {
-  isMounted.value = true
-
   await fetchCurrentUser()
+  isMounted.value = true
 
   const serverHost = window.location.hostname
   socket = io(`http://${serverHost}:8090`)
-
   socket.emit('join_spreadsheet', route.params.id)
 
   socket.on('sync_locks', (locks) => {
@@ -957,12 +594,21 @@ onMounted(async () => {
     }
   })
 
-  socket.on('refresh_spreadsheet', async () => {
-    await fetchSpreadsheetDetail()
-    await fetchProtectedRanges()
+  socket.on('refresh_spreadsheet', async (incomingData) => {
+    if (incomingData && incomingData.sheets) {
+      allSheets.value = incomingData.sheets
+      if (hotRef.value && hotRef.value.hotInstance) {
+        const activeSheet = allSheets.value[currentSheetName.value]
+        if (activeSheet) {
+          hotRef.value.hotInstance.loadData(activeSheet.rows)
+          applySheetStyles(hotRef.value.hotInstance, activeSheet)
+        }
+      }
+    } else {
+      await fetchSpreadsheetDetail()
+    }
   })
 
-  window.addEventListener('keydown', handleKeydown)
   setTimeout(async () => {
     await fetchSpreadsheetDetail()
     await fetchProtectedRanges()
@@ -970,7 +616,6 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleKeydown)
   if (socket && activeRowLockedByMe !== null) {
     socket.emit('unlock_row', { spreadsheetId: route.params.id, rowIndex: activeRowLockedByMe })
   }
@@ -979,354 +624,37 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 💡 Menggunakan container full-width agar memenuhi layar */
-.spreadsheet-container-full {
-  width: 100vw;
-  min-height: 100vh;
-  margin: 0;
-  padding: 16px 24px 60px 24px;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: #1e293b;
-  background-color: #f8fafc;
-  box-sizing: border-box;
+.spreadsheet-container-full { width: 100vw; min-height: 100vh; padding: 16px 24px; background-color: #f8fafc; box-sizing: border-box; }
+.spreadsheet-header-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px 12px 0 0; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+.header-left, .header-right, .title-input-group { display: flex; align-items: center; gap: 12px; }
+.sheet-title-input { font-size: 18px; font-weight: 700; border: none; background: transparent; }
+.badge-mode { background: #e0e7ff; color: #4338ca; font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 700; }
+.current-user-pill { display: flex; align-items: center; gap: 6px; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.user-avatar-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
+.btn-back { text-decoration: none; color: #475569; padding: 6px 12px; background: #f1f5f9; border-radius: 6px; font-size: 13px; font-weight: 600; }
+.btn-excel-save { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.btn-protect-action { background: #fef08a !important; color: #854d0e !important; border: 1px solid #fde047 !important; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.wps-ribbon-toolbar { display: flex; align-items: center; background: #f1f5f9; border: 1px solid #e2e8f0; border-top: none; padding: 8px 16px; gap: 10px; }
+.ribbon-group { display: flex; gap: 4px; align-items: center; }
+.ribbon-btn { background: #fff; border: 1px solid #cbd5e1; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+.ribbon-divider { width: 1px; height: 22px; background: #cbd5e1; }
+.spreadsheet-body-card { background: #fff; border: 1px solid #e2e8f0; border-top: none; padding: 16px; }
+.sheet-tabs-bar { background: #f1f5f9; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; padding: 8px 16px; display: flex; }
+.sheet-tabs-list { display: flex; gap: 6px; }
+.sheet-tab-item { background: #fff; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.sheet-tab-item.active { background: #6366f1; color: #fff; border-color: #4f46e5; }
+
+/* Styling Warna Background, Bold, dan Border CSS */
+.spreadsheet-body-card :deep(.ht-bold) { font-weight: bold !important; }
+.spreadsheet-body-card :deep(.ht-italic) { font-style: italic !important; }
+
+.spreadsheet-body-card :deep(.cell-border-all) { 
+  border: 2px solid #0f172a !important; 
 }
 
-.not-found-card {
-  text-align: center;
-  padding: 80px 20px;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 2px dashed #cbd5e1;
-  max-width: 500px;
-  margin: 60px auto;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-.not-found-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-.not-found-card h2 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 8px 0;
-}
-.not-found-card p {
-  font-size: 14px;
-  color: #64748b;
-  margin: 0 0 24px 0;
-}
-.btn-back-home {
-  background: #4f46e5;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 13px;
-  text-decoration: none;
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
-  transition: background 0.2s;
-}
-.btn-back-home:hover {
-  background: #4338ca;
-}
-
-.spreadsheet-header-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px 12px 0 0;
-  padding: 16px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-}
-
-.title-input-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.sheet-title-input {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  border: 1px solid transparent;
-  padding: 4px 8px;
-  border-radius: 6px;
-  outline: none;
-  width: 280px;
-  background: transparent;
-  transition: all 0.2s;
-}
-
-.sheet-title-input:hover,
-.sheet-title-input:focus {
-  border-color: #cbd5e1;
-  background: #f8fafc;
-}
-
-.badge-mode {
-  background: #e0e7ff;
-  color: #4338ca;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 20px;
-}
-
-/* 💡 Styling Info User Pill di Sebelah Badge */
-.current-user-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #334155;
-}
-
-.user-avatar-dot {
-  width: 8px;
-  height: 8px;
-  background-color: #10b981;
-  border-radius: 50%;
-  display: inline-block;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-}
-
-.user-name-text {
-  max-width: 150px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.btn-back {
-  text-decoration: none;
-  color: #475569;
-  font-weight: 600;
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  transition: background 0.2s;
-}
-
-.btn-back:hover {
-  background: #e2e8f0;
-}
-
-.btn-excel-save {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-  transition: transform 0.1s;
-}
-
-.btn-excel-save:hover {
-  background: #059669;
-  transform: translateY(-1px);
-}
-
-.btn-protect-action {
-  background: #fef08a !important;
-  color: #854d0e !important;
-  border: 1px solid #fde047 !important;
-  padding: 8px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-protect-action:hover {
-  background: #fde047 !important;
-}
-
-.save-status-text {
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 500;
-  margin-right: 16px;
-}
-
-.text-success {
-  color: #059669 !important;
-  font-weight: 700;
-}
-
-.wps-ribbon-toolbar {
-  display: flex;
-  align-items: center;
-  background: #f1f5f9;
-  border-left: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0;
-  padding: 8px 16px;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.ribbon-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ribbon-btn {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  color: #334155;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.ribbon-btn:hover {
-  background: #e2e8f0;
-  border-color: #94a3b8;
-}
-
-.ribbon-divider {
-  width: 1px;
-  height: 22px;
-  background: #cbd5e1;
-  margin: 0 4px;
-}
-
-.color-swatch {
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border-radius: 4px;
-}
-.color-swatch.yellow { background-color: #fef08a; border-color: #fde047; }
-.color-swatch.green { background-color: #bbf7d0; border-color: #86efac; }
-.color-swatch.blue { background-color: #bfdbfe; border-color: #93c5fd; }
-
-.formula-tag {
-  background: #e0e7ff;
-  color: #3730a3;
-  border-color: #c7d2fe;
-}
-.formula-tag:hover {
-  background: #c7d2fe;
-}
-
-.formula-ribbon-outer {
-  position: relative;
-  z-index: 1050;
-}
-
-.formula-ribbon {
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  background: #ffffff;
-  border-left: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
-  gap: 10px;
-}
-
-.formula-fx-label {
-  font-style: italic;
-  font-weight: bold;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.formula-bar-input {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  font-size: 13px;
-  outline: none;
-  background: #ffffff;
-}
-
-.formula-bar-input:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
-}
-
-.btn-apply-formula {
-  background: #4f46e5;
-  color: white;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.btn-apply-formula:hover {
-  background: #4338ca;
-}
-
-.formula-suggestions-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 45px;
-  right: 135px;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 0 0 6px 6px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  z-index: 1100;
-  max-height: 220px;
-  overflow-y: auto;
-}
-
-.suggestion-item {
-  padding: 10px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 12px;
-  background: #ffffff;
-}
-
-.suggestion-item:hover {
-  background: #f8fafc;
-}
-
-.suggestion-name {
-  font-weight: 700;
-  color: #4338ca;
-}
-
-.suggestion-desc {
-  color: #64748b;
-}
+.spreadsheet-body-card :deep(.bg-yellow) { background-color: #fef08a !important; }
+.spreadsheet-body-card :deep(.bg-green) { background-color: #bbf7d0 !important; }
+.spreadsheet-body-card :deep(.bg-blue) { background-color: #bfdbfe !important; }
 
 .collab-warning-banner {
   background-color: #fff1f2;
@@ -1341,285 +669,21 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  animation: fadeIn 0.2s ease-in-out;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.spreadsheet-body-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-top: none;
-  padding: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  position: relative;
-  z-index: 1;
-}
-
-.sheet-tabs-bar {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-top: none;
-  border-radius: 0 0 12px 12px;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-}
-
-.sheet-tabs-list {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  overflow-x: auto;
-}
-
-.sheet-tab-item {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  color: #475569;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.sheet-tab-item:hover {
-  background: #e2e8f0;
-  color: #0f172a;
-}
-
-.sheet-tab-item.active {
-  background: #6366f1;
-  color: white;
-  border-color: #4f46e5;
-  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.25);
-}
-
-.sheet-tab-add {
-  background: #e2e8f0;
-  border: 1px dashed #94a3b8;
-  color: #334155;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.sheet-tab-add:hover {
-  background: #cbd5e1;
-  color: #0f172a;
-}
-
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 99999;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.modal-card {
-  background: #fff;
-  width: 100%;
-  max-width: 600px;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh;
-  margin: auto;
-}
-
-.modal-header {
-  padding: 20px 24px;
-  background: #f8fafc;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.modal-header h3 {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.modal-sub {
-  font-size: 12px;
-  color: #64748b;
-  margin-top: 2px;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #64748b;
-  line-height: 1;
-}
-
-.modal-body {
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
-  background: #fafafa;
-}
-
-.protect-form-box {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.info-tip {
-  font-size: 13px;
-  color: #475569;
-  margin: 0 0 12px 0;
-}
-
-.selected-range-info {
-  font-size: 13px;
-  color: #1e293b;
-  margin-bottom: 12px;
-  background: #f8fafc;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #cbd5e1;
-}
-
-.btn-apply-protect {
-  background: #4f46e5;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-}
-.btn-apply-protect:hover {
-  background: #4338ca;
-}
-
-.section-heading {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 10px;
-}
-
-.protected-list-table {
-  max-height: 180px;
-  overflow-y: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #fff;
-}
-.protected-list-table table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  text-align: left;
-}
-.protected-list-table th {
-  background: #f1f5f9;
-  padding: 8px 12px;
-  color: #475569;
-  border-bottom: 1px solid #e2e8f0;
-}
-.protected-list-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
-}
-
-.btn-delete-protect {
-  background: #fee2e2;
-  color: #991b1b;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-delete-protect:hover {
-  background: #fecaca;
-}
-
-.modal-footer {
-  padding: 16px 24px;
-  background: #fff;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.btn-close-modal {
-  background: #334155;
-  color: white;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn-close-modal:hover {
-  background: #1e293b;
-}
-
-.spreadsheet-body-card :deep(.handsontable) {
-  color: #0f172a !important;
-}
-
-.spreadsheet-body-card :deep(.wtHolder) {
-  background-color: #ffffff !important;
-}
-
-.spreadsheet-body-card :deep(.row-locked-by-other) {
+.spreadsheet-body-card :deep(.row-locked-by-other):not(.bg-yellow):not(.bg-green):not(.bg-blue) {
   background-color: #ffe4e6 !important;
   color: #9f1239 !important;
-}
-
-.spreadsheet-body-card :deep(.cell-protected-range) {
-  background-color: #f1f5f9 !important;
-  color: #94a3b8 !important;
   cursor: not-allowed !important;
 }
-
-.spreadsheet-body-card :deep(.ht-bold) { font-weight: bold !important; }
-.spreadsheet-body-card :deep(.ht-italic) { font-style: italic !important; }
-.spreadsheet-body-card :deep(.cell-border-all) { border: 2px solid #0f172a !important; }
-.spreadsheet-body-card :deep(.bg-yellow) { background-color: #fef08a !important; }
-.spreadsheet-body-card :deep(.bg-green) { background-color: #bbf7d0 !important; }
-.spreadsheet-body-card :deep(.bg-blue) { background-color: #bfdbfe !important; }
-
-.spreadsheet-body-card :deep(.row-owned-by-other) {
-  background-color: #f1f5f9 !important;
-  color: #64748b !important;
-  cursor: not-allowed !important;
+.spreadsheet-body-card :deep(.cell-owned-by-other):not(.bg-yellow):not(.bg-green):not(.bg-blue) { 
+  background-color: #f1f5f9 !important; 
+  color: #64748b !important; 
+  cursor: not-allowed !important; 
+}
+.spreadsheet-body-card :deep(.cell-protected-range):not(.bg-yellow):not(.bg-green):not(.bg-blue) { 
+  background-color: #f1f5f9 !important; 
+  color: #94a3b8 !important; 
+  cursor: not-allowed !important; 
 }
 </style>

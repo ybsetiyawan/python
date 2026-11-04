@@ -36,23 +36,26 @@ const WorkspaceRepository = {
   },
 
   // TAMBAHAN: Fungsi untuk pencarian global dokumen (Form & Spreadsheet)
-  async searchDocuments(keyword, userId = null) {
+ async searchDocuments(keyword, userId = null) {
     const searchPattern = `%${keyword}%`
 
-    // 1. Cari di tabel forms (bisa difilter milik user tertentu atau global sesuai kebutuhan)
+    // 1. Cari di tabel forms dengan mengambil nama pembuat dari tabel users
     const formsQuery = `
-      SELECT id, title, 'form' as type 
-      FROM forms 
-      WHERE (title ILIKE $1 OR CAST(id AS TEXT) ILIKE $1)
+      SELECT f.id, f.title, 'form' as type, u.name as created_by 
+      FROM forms f
+      LEFT JOIN users u ON f.user_id = u.id
+      WHERE f.allow_submission = true 
+        AND (f.title ILIKE $1 OR CAST(f.id AS TEXT) ILIKE $1)
       LIMIT 5
-    `
+    `;
     const formsResult = await pool.query(formsQuery, [searchPattern])
 
-    // 2. Cari di tabel spreadsheets
+    // 2. Cari di tabel spreadsheets dengan mengambil nama pembuat dari tabel users
     const sheetsQuery = `
-      SELECT id, title, 'spreadsheet' as type 
-      FROM spreadsheets 
-      WHERE (title ILIKE $1 OR CAST(id AS TEXT) ILIKE $1)
+      SELECT s.id, s.title, 'spreadsheet' as type, u.name as created_by 
+      FROM spreadsheets s
+      LEFT JOIN users u ON s.created_by = u.id
+      WHERE (s.title ILIKE $1 OR CAST(s.id AS TEXT) ILIKE $1)
       LIMIT 5
     `
     const sheetsResult = await pool.query(sheetsQuery, [searchPattern])

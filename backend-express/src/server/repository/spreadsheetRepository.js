@@ -47,68 +47,78 @@ class SpreadsheetRepository {
     return result.rows[0];
   }
 
- static async update(id, data, currentUserId) {
+  static async update(id, data, currentUserId) {
+    const userId = String(currentUserId || data.currentUserId || '');
     const { title, description, data_content, is_shared } = data;
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
 
-      // 1. Ambil data spreadsheet lama
+      // 1. Ambil data spreadsheet lama dari database
       const oldRes = await client.query(`SELECT data_content, created_by FROM spreadsheets WHERE id = $1 FOR UPDATE;`, [id]);
       if (oldRes.rows.length === 0) {
         throw new Error("Spreadsheet tidak ditemukan");
       }
       
-      const spreadsheetOwnerId = oldRes.rows[0].created_by;
+      const spreadsheetOwnerId = String(oldRes.rows[0].created_by || '');
       const oldDataContent = oldRes.rows[0].data_content || { sheets: {} };
-      const isSpreadsheetOwner = spreadsheetOwnerId && currentUserId && String(spreadsheetOwnerId) === String(currentUserId);
+      const isSpreadsheetOwner = spreadsheetOwnerId && userId && spreadsheetOwnerId === userId;
 
-      // 2. Validasi & Proses rowOwners serta proteksi kolom utama (Kolom 0 & 1)
+      // 2. Validasi & Proses cellOwners per sel
       if (data_content && data_content.sheets) {
         for (const sheetName in data_content.sheets) {
           const newSheet = data_content.sheets[sheetName];
-          const oldSheet = oldDataContent.sheets?.[sheetName] || { rows: [], rowOwners: {} };
+          const oldSheet = oldDataContent.sheets?.[sheetName] || { rows: [], cellOwners: {} };
           
-          const oldOwners = oldSheet.rowOwners || {};
-          const incomingOwners = newSheet.rowOwners || {};
-          const mergedOwners = { ...oldOwners, ...incomingOwners };
+          const oldCellOwners = oldSheet.cellOwners || {};
+          const incomingCellOwners = newSheet.cellOwners || {};
+          const mergedCellOwners = { ...oldCellOwners, ...incomingCellOwners };
 
           const newRows = newSheet.rows || [];
           const oldRows = oldSheet.rows || [];
 
           for (let r = 0; r < newRows.length; r++) {
-            const rowStr = String(r);
             const newRowData = newRows[r] || [];
             const oldRowData = oldRows[r] || [];
 
-            // Jika bukan owner utama spreadsheet, lindungi Kolom 0 & 1 agar tidak diubah isinya
-            if (!isSpreadsheetOwner) {
-              for (let c = 0; c < 2; c++) {
-                const oldVal = oldRows[r]?.[c];
-                const newVal = newRowData[c];
-                
-                if (oldVal !== undefined && oldVal !== null && String(oldVal).trim() !== '' && oldVal !== newVal) {
-                  throw new Error(`Aksi ditolak! Kolom utama pada baris ${r + 1} tidak boleh diubah.`);
+            for (let c = 0; c < newRowData.length; c++) {
+              const cellKey = `${r},${c}`;
+              const cellOwner = oldCellOwners[cellKey] ? String(oldCellOwners[cellKey]) : null;
+              const oldVal = oldRows[r]?.[c] ?? '';
+              const newVal = newRowData[c] ?? '';
+
+              // 🛡️ ATURAN PENGAMANAN UTAMA (Backend Validation):
+              // Jika yang mengubah bukan Owner Utama spreadsheet
+              if (!isSpreadsheetOwner) {
+                // Jika sel sudah dimiliki oleh user lain
+                if (cellOwner && cellOwner !== userId) {
+                  // Jika isinya diubah atau dikosongkan oleh user yang bukan pemiliknya
+                  if (String(oldVal).trim() !== String(newVal).trim()) {
+                    throw new Error(`Aksi ditolak! Sel pada baris ${r + 1}, kolom ${c + 1} sudah diisi oleh pengguna lain.`);
+                  }
+                }
+              }
+
+              // Pengelolaan klaim kepemilikan sel
+              const hasContent = String(newVal).trim() !== '';
+              if (hasContent) {
+                if (!mergedCellOwners[cellKey]) {
+                  mergedCellOwners[cellKey] = userId || spreadsheetOwnerId;
+                }
+              } else {
+                // Jika sel dikosongkan
+                if (cellOwner) {
+                  if (isSpreadsheetOwner || cellOwner === userId) {
+                    delete mergedCellOwners[cellKey];
+                  } else {
+                    throw new Error(`Aksi ditolak! Anda tidak berhak menghapus sel milik pengguna lain.`);
+                  }
                 }
               }
             }
-
-            // Kelola pemilik baris berdasarkan adanya data
-            const hasDataAnywhere = newRowData.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
-            let ownerOfRow = mergedOwners[rowStr] || mergedOwners[r] || oldOwners[rowStr] || oldOwners[r];
-
-            if (hasDataAnywhere) {
-              if (!ownerOfRow) {
-                ownerOfRow = currentUserId || spreadsheetOwnerId;
-              }
-              mergedOwners[rowStr] = ownerOfRow;
-            } else {
-              delete mergedOwners[rowStr];
-              delete mergedOwners[r];
-            }
           }
-          newSheet.rowOwners = mergedOwners;
+          newSheet.cellOwners = mergedCellOwners;
         }
       }
 
@@ -155,21 +165,16 @@ class SpreadsheetRepository {
       }
 
       let dataContent = selectRes.rows[0].data_content || { sheets: {} };
-      
-      if (!dataContent.sheets) {
-        dataContent.sheets = {};
-      }
+      if (!dataContent.sheets) dataContent.sheets = {};
       if (!dataContent.sheets[sheetName]) {
-        dataContent.sheets[sheetName] = { rows: [], styles: {}, rowOwners: {} };
+        dataContent.sheets[sheetName] = { rows: [], styles: {}, cellOwners: {} };
       }
 
       const targetSheet = dataContent.sheets[sheetName];
-
       let lastFilledIndex = -1;
       for (let i = targetSheet.rows.length - 1; i >= 0; i--) {
         const row = targetSheet.rows[i];
-        const hasData = row && row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
-        if (hasData) {
+        if (row && row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')) {
           lastFilledIndex = i;
           break;
         }
@@ -201,10 +206,6 @@ class SpreadsheetRepository {
     const result = await pool.query(query, [id]);
     return result.rows[0];
   }
-
-  // ==========================================
-  // 🔒 PROTECTED RANGES (ADMIN)
-  // ==========================================
 
   static async getProtectedRanges(spreadsheetId) {
     const query = `SELECT * FROM spreadsheet_protected_ranges WHERE spreadsheet_id = $1;`;
