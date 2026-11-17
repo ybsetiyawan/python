@@ -82,11 +82,13 @@ class MonitorController {
 
       const monitoringResults = await Promise.all(pingPromises);
 
-      // 3. HITUNG JUMLAH YANG OFFLINE & PICU ALARM FISIK
+      // 3. HITUNG JUMLAH YANG OFFLINE
       const offlineCount = monitoringResults.filter(item => item.status === 'OFFLINE').length;
       
-      // Panggil fungsi alarm fisik di background (non-blocking)
-      MonitorController._triggerPhysicalAlarm(offlineCount);
+      // 4. HANYA PICU ALARM FISIK JIKA DITRIGGER OLEH CRON JOB (Mencegah bunyi saat web direfresh)
+      if (req.query.trigger === 'cron') {
+        MonitorController._triggerPhysicalAlarm(offlineCount);
+      }
 
       return res.status(200).json({
         success: true,
