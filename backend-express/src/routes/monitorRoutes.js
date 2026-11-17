@@ -6,5 +6,6 @@ const MonitorController = require('../server/api/controllers/monitorController')
 
 // Endpoint: GET /api/monitor/ping
 router.get('/ping', MonitorController.pingGateways);
+router.get('/ping/:code', MonitorController.pingSingleGateway);
 
 module.exports = router;
