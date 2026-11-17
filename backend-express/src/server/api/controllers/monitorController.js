@@ -1,7 +1,26 @@
 const ping = require('ping');
+const { exec } = require('child_process');
+const path = require('path');
 const MonitorRepository = require('../../../server/repository/monitorRepository');
 
 class MonitorController {
+  
+  // Fungsi helper privat untuk memicu alarm fisik secara asinkron
+  static _triggerPhysicalAlarm(offlineCount) {
+    const scriptPath = path.join(__dirname, 'alert_service.py');
+    exec(`python3 ${scriptPath} ${offlineCount}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Gagal memicu alarm fisik: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.warn(`Alarm warning: ${stderr}`);
+        return;
+      }
+      console.log(`Alarm fisik aktif: ${stdout.trim()}`);
+    });
+  }
+
   // Method untuk mengecek ping seluruh gateway stock point sekaligus
   static async pingGateways(req, res) {
     try {
@@ -63,9 +82,16 @@ class MonitorController {
 
       const monitoringResults = await Promise.all(pingPromises);
 
+      // 3. HITUNG JUMLAH YANG OFFLINE & PICU ALARM FISIK
+      const offlineCount = monitoringResults.filter(item => item.status === 'OFFLINE').length;
+      
+      // Panggil fungsi alarm fisik di background (non-blocking)
+      MonitorController._triggerPhysicalAlarm(offlineCount);
+
       return res.status(200).json({
         success: true,
         total: monitoringResults.length,
+        offline_count: offlineCount,
         data: monitoringResults
       });
 
@@ -79,7 +105,6 @@ class MonitorController {
     try {
       const { code } = req.params;
       
-      // Ambil seluruh data lalu cari berdasarkan kode_spoint, atau gunakan method repository jika ada
       const targets = await MonitorRepository.getActiveStockPointGateways();
       const sp = targets.find(i => i.kode_spoint === code);
 
