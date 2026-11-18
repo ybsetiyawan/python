@@ -1,100 +1,129 @@
 <template>
-  <div class="workspace-dashboard">
-    
-    <!-- TOP CLEAN HEADER -->
-    <div class="dashboard-header slide-up">
-      <div class="header-content">
+  <div class="workspace-enterprise">
+
+    <!-- TOP PAGE TITLE BAR -->
+    <div class="enterprise-topbar slide-up">
+      <div class="title-group">
         <h1>EDPSBY Workspace</h1>
         <p class="welcome-text">
-          Selamat datang di <strong>EDPSBY Workspace</strong>, ruang kerja internal PT Indomarco Adi Prima Cabang Surabaya. 
-          Pusat kendali operasional terpadu untuk mengelola formulir cabang, repositori berkas, dan analitik data harian secara efisien.
+          Selamat datang di <strong>EDPSBY Workspace</strong>, ruang kerja internal PT Indomarco Adi Prima Cabang
+          Surabaya.
+        </p>
+        <p class="welcome-text">
+          Pusat kendali operasional terpadu untuk mengelola formulir cabang, repositori berkas, dan analitik data harian
+          secara efisien.
         </p>
       </div>
-
-      <!-- METRICS COUNTER CARD -->
-      <div class="metrics-wrapper">
-        <div class="metric-box">
-          <span class="metric-value text-indigo">{{ loading ? '...' : totalForms }}</span>
-          <span class="metric-name">Total Forms</span>
-        </div>
-        <div class="metric-separator"></div>
-        <div class="metric-box">
-          <span class="metric-value text-blue">{{ loading ? '...' : totalFiles }}</span>
-          <span class="metric-name">Drive Files</span>
-        </div>
-        <div class="metric-separator"></div>
-        <div class="metric-box">
-          <span class="metric-value text-emerald">{{ loading ? '...' : totalSheets }}</span>
-          <span class="metric-name">Spreadsheet</span>
-        </div>
+      <div class="topbar-clock">
+        <v-icon size="16" color="indigo-darken-2" class="mr-2">mdi-shield-check-outline</v-icon>
+        <span>EDP Security Active</span>
       </div>
     </div>
 
-    <!-- SECTION TITLE -->
-    <div class="section-title slide-up delay-1">
-      <h3>Modul Layanan Utama</h3>
-      <span>Pilih modul sistem operasional perusahaan</span>
-    </div>
+    <!-- MAIN GRID CONTAINER (2 COLUMNS: SIDEBAR & CONTENT) -->
+    <div class="enterprise-layout slide-up delay-1">
 
-    <!-- MODULES LIGHT GRID (Dynamic from Database) -->
-    <div class="modules-grid slide-up delay-2">
-      
-      <div 
-        v-for="menu in allMenus" 
-        :key="menu.id" 
-        class="app-card clickable" 
-        @click="handleMenuClick(menu.path, menu.is_active ?? true)"
-      >
-        <div class="card-top-row">
-          <!-- Dinamis mengambil kelas warna background ikon dari database -->
-          <div class="app-icon-wrap" :class="menu.icon_bg || 'indigo-bg'">
-            <v-icon color="white" size="24">{{ menu.icon ? menu.icon.replace(':', '-') : 'mdi-folder-outline' }}</v-icon>
+      <!-- KOLOM KIRI: STATISTIK & RINGKASAN SISTEM -->
+      <div class="enterprise-sidebar">
+        <div class="sidebar-card">
+          <div class="sidebar-card-header">
+            <v-icon size="18" color="indigo-darken-2">mdi-chart-box-outline</v-icon>
+            <h3>Live Metrics</h3>
           </div>
-          <!-- Dinamis teks dan warna chip diselaraskan dengan tema warna/icon_bg -->
-          <span class="status-chip" :class="getChipClass(menu.icon_bg)">{{ menu.badge_text || 'Modul Utama' }}</span>
+
+          <div class="metrics-stack">
+            <div class="metric-row">
+              <div class="d-flex align-center" style="gap: 10px;">
+                <div class="mini-icon bg-indigo-light">
+                  <v-icon size="16" color="indigo-darken-2">mdi-file-document-outline</v-icon>
+                </div>
+                <span class="metric-label">Total Forms</span>
+              </div>
+              <span class="metric-val text-indigo">{{ loading ? '...' : totalForms }}</span>
+            </div>
+
+            <div class="metric-row">
+              <div class="d-flex align-center" style="gap: 10px;">
+                <div class="mini-icon bg-blue-light">
+                  <v-icon size="16" color="blue-darken-2">mdi-cloud-outline</v-icon>
+                </div>
+                <span class="metric-label">Drive Files</span>
+              </div>
+              <span class="metric-val text-blue">{{ loading ? '...' : totalFiles }}</span>
+            </div>
+
+            <div class="metric-row">
+              <div class="d-flex align-center" style="gap: 10px;">
+                <div class="mini-icon bg-emerald-light">
+                  <v-icon size="16" color="emerald-darken-2">mdi-table-account</v-icon>
+                </div>
+                <span class="metric-label">Spreadsheets</span>
+              </div>
+              <span class="metric-val text-emerald">{{ loading ? '...' : totalSheets }}</span>
+            </div>
+          </div>
+
+          <div class="sidebar-info-box mt-4">
+            <p>
+              <v-icon size="14" color="slate-500" class="mr-1">mdi-information-outline</v-icon>
+              Pastikan akses modul disesuaikan dengan otorisasi akun login Anda.
+            </p>
+          </div>
         </div>
-        <div class="card-main">
-          <h3>{{ menu.name }}</h3>
-          <!-- Dinamis deskripsi dari database -->
-          <p>{{ menu.description || 'Kelola operasional modul terkait dengan sistem terpusat.' }}</p>
+      </div>
+
+      <!-- KOLOM KANAN: GRID MODUL UTAMA (DILENGKAPI SCROLL INTERNAL) -->
+      <div class="enterprise-main">
+        <div class="modules-header-row">
+          <h3>Modul Layanan</h3>
+          <span class="text-caption text-slate-500 font-weight-bold">Total: {{ allMenus.length }} Modul Tersedia</span>
         </div>
-        <div class="card-bottom-row">
-          <span class="action-label">Buka Aplikasi</span>
-          <v-icon size="18" color="indigo-darken-2" class="nav-arrow">mdi-arrow-right</v-icon>
+
+        <div class="modules-scroll-container">
+          <div class="modules-grid-split">
+            <div v-for="menu in allMenus" :key="menu.id" class="enterprise-card clickable"
+              @click="handleMenuClick(menu.path, menu.is_active ?? true)">
+              <div class="card-top">
+                <div class="app-icon-box" :class="menu.icon_bg || 'indigo-bg'">
+                  <v-icon color="white" size="20">{{ menu.icon ? menu.icon.replace(':', '-') : 'mdi-folder-outline'
+                    }}</v-icon>
+                </div>
+                <span class="badge-status" :class="getChipClass(menu.icon_bg)">
+                  {{ menu.badge_text || 'Aktif' }}
+                </span>
+              </div>
+
+              <div class="card-body">
+                <h4>{{ menu.name }}</h4>
+                <p>{{ menu.description || 'Kelola operasional modul terkait dengan sistem terpusat.' }}</p>
+              </div>
+
+              <div class="card-footer-row">
+                <span class="action-text">Buka Modul</span>
+                <v-icon size="16" color="indigo-darken-2" class="arrow-icon">mdi-arrow-right</v-icon>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
     </div>
 
-    <!-- FOOTER -->
-    <div class="dashboard-footer slide-up delay-3">
-      <span>EDPSBY System &copy; 2026</span>
-      <span class="dot-separator">&bull;</span>
-      <span>PT Indomarco Adi Prima Surabaya</span>
-    </div>
-
-    <!-- MODAL NOTIFIKASI AKSES & PENGEMBANGAN -->
+    <!-- DIALOG NOTIFIKASI AKSES -->
     <v-dialog v-model="dialog.show" max-width="400" transition="dialog-bottom-transition">
-      <v-card class="rounded-2xl pa-6 text-center elevation-6">
-        <div class="modal-icon-container mb-4" :class="dialog.type === 'auth' ? 'bg-red-light' : 'bg-amber-light'">
-          <v-icon 
-            :color="dialog.type === 'auth' ? 'error' : 'warning'" 
-            size="32"
-          >
-            {{ dialog.type === 'auth' ? 'mdi-lock-alert' : 'mdi-hammer-wrench' }}
+      <v-card class="rounded-2xl pa-6 text-center elevation-6 border">
+        <div class="modal-icon-container mb-4 mx-auto"
+          :class="dialog.type === 'auth' ? 'bg-red-light' : 'bg-amber-light'">
+          <v-icon :color="dialog.type === 'auth' ? 'error' : 'warning'" size="28">
+            {{ dialog.type === 'auth' ? 'mdi-shield-lock-outline' : 'mdi-wrench-clock' }}
           </v-icon>
         </div>
 
         <h3 class="text-h6 font-weight-bold text-slate-900 mb-2">{{ dialog.title }}</h3>
         <p class="text-body-2 text-slate-600 mb-6 leading-relaxed">{{ dialog.message }}</p>
 
-        <v-btn 
-          color="indigo-darken-2" 
-          block 
-          height="42"
-          class="rounded-xl text-none font-weight-bold elevation-0" 
-          @click="dialog.show = false"
-        >
+        <v-btn color="indigo-darken-2" block height="42" class="rounded-xl text-none font-weight-bold elevation-0"
+          @click="dialog.show = false">
           Mengerti
         </v-btn>
       </v-card>
@@ -127,7 +156,6 @@ const dialog = reactive({
   message: ''
 })
 
-// Fungsi untuk mencocokkan kelas chip agar warnanya senada dengan icon_bg
 const getChipClass = (iconBg) => {
   if (!iconBg) return 'chip-indigo'
   const prefix = iconBg.replace('-bg', '')
@@ -148,7 +176,7 @@ const handleMenuClick = (path, isFeatureExists = true) => {
   if (allowedMenuPaths.value.length > 0 && !isAuthorized) {
     dialog.type = 'auth'
     dialog.title = 'Akses Ditolak (Unauthorized)'
-    dialog.message = 'Anda tidak memiliki hak akses ke menu ini. Silakan hubungi administrator IT untuk penambahan permission.'
+    dialog.message = 'Anda tidak memiliki hak akses ke menu ini. Silakan hubungi administrator IT.'
     dialog.show = true
     return
   }
@@ -189,257 +217,441 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.workspace-dashboard {
-  max-width: 1140px;
+/* KONTAINER UTAMA: DIKUNCI DI 95vh AGAR PAS DAN TIDAK ADA SCROLL LUAR */
+.workspace-enterprise {
+  max-width: 1200px;
+  height: calc(95vh - 72px);
   margin: 0 auto;
-  padding: 36px 24px 60px 24px;
+  padding: 16px 24px;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #1e293b;
   background-color: #f8fafc;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.dashboard-header {
+/* TOPBAR */
+.enterprise-topbar {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 24px;
-  padding: 32px 36px;
+  border-radius: 20px;
+  padding: 16px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 30px;
-  margin-bottom: 36px;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.02);
+  margin-bottom: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01);
 }
 
-.header-content { flex: 1; }
 
-.system-badge {
-  background: #eef2ff;
-  color: #4f46e5;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  margin-bottom: 12px;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-}
 
-.header-content h1 {
-  font-size: 26px;
+.title-group h1 {
+  font-size: 20px;
   font-weight: 800;
   color: #0f172a;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.5px;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.4px;
 }
 
 .welcome-text {
-  font-size: 13.5px;
-  color: #475569;
+  font-size: 12.5px;
+  color: #64748b;
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
-.metrics-wrapper {
+.topbar-clock {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
   background: #f8fafc;
   border: 1px solid #f1f5f9;
-  border-radius: 18px;
-  padding: 16px 24px;
+  padding: 8px 14px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 24px;
 }
 
-.metric-box { text-align: center; }
-
-.metric-value {
-  font-size: 22px;
-  font-weight: 800;
-  display: block;
-}
-
-.text-indigo { color: #4f46e5; }
-.text-blue { color: #2563eb; }
-.text-emerald { color: #059669; }
-
-.metric-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.metric-separator {
-  width: 1px;
-  height: 30px;
-  background: #e2e8f0;
-}
-
-.section-title { margin-bottom: 20px; }
-
-.section-title h3 {
-  font-size: 17px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 2px 0;
-}
-
-.section-title span {
-  font-size: 13px;
-  color: #64748b;
-}
-
-.modules-grid {
+/* LAYOUT SPLIT */
+.enterprise-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
-  gap: 22px;
-  margin-bottom: 40px;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  flex-grow: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
-.app-card {
+/* SIDEBAR KIRI */
+.enterprise-sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 20px;
-  padding: 26px;
+  padding: 18px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-  position: relative;
+  height: 100%;
+  box-sizing: border-box;
 }
 
-.app-card:hover {
-  transform: translateY(-4px);
-  border-color: #cbd5e1;
-  box-shadow: 0 16px 30px -10px rgba(0, 0, 0, 0.06);
-}
-
-.card-top-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.app-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+.sidebar-card-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 12px -3px rgba(0, 0, 0, 0.08);
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
-/* Gradasi Warna Ikon */
-.indigo-bg { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
-.blue-bg { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
-.cyan-bg { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
-.emerald-bg { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-.teal-bg { background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); }
-.amber-bg { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-.orange-bg { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
-.purple-bg { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
-.pink-bg { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
-.rose-bg { background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); }
-
-.status-chip {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 8px;
-  letter-spacing: 0.3px;
-}
-
-/* Tema Warna Chip / Badge yang Selaras dengan Latar Ikon */
-.chip-indigo { background: #eef2ff; color: #4f46e5; }
-.chip-blue { background: #eff6ff; color: #2563eb; }
-.chip-cyan { background: #ecfeff; color: #0891b2; }
-.chip-emerald { background: #ecfdf5; color: #059669; }
-.chip-teal { background: #f0fdf4; color: #0d9488; }
-.chip-amber { background: #fffbeb; color: #d97706; }
-.chip-orange { background: #fff7ed; color: #ea580c; }
-.chip-purple { background: #f5f3ff; color: #7c3aed; }
-.chip-pink { background: #fdf2f8; color: #db2777; }
-.chip-rose { background: #fff1f2; color: #e11d48; }
-
-.card-main h3 {
-  font-size: 18px;
+.sidebar-card-header h3 {
+  font-size: 14.5px;
   font-weight: 700;
   color: #0f172a;
-  margin: 0 0 8px 0;
-}
-
-.card-main p {
-  font-size: 13px;
-  color: #64748b;
-  line-height: 1.55;
   margin: 0;
 }
 
-.card-bottom-row {
+.metrics-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+}
+
+.mini-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
+  justify-content: center;
+}
+
+.bg-indigo-light {
+  background: #eef2ff;
+}
+
+.bg-blue-light {
+  background: #eff6ff;
+}
+
+.bg-emerald-light {
+  background: #ecfdf5;
+}
+
+.metric-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.metric-val {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.text-indigo {
+  color: #4f46e5;
+}
+
+.text-blue {
+  color: #2563eb;
+}
+
+.text-emerald {
+  color: #059669;
+}
+
+.sidebar-info-box {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px dashed #cbd5e1;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-info-box p {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* KANAN: MAIN CONTENT */
+.enterprise-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modules-header-row {
+  display: flex;
   justify-content: space-between;
-  margin-top: 24px;
-  padding-top: 16px;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.modules-header-row h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* AREA SCROLL KHUSUS MODUL */
+.modules-scroll-container {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding-right: 6px;
+  padding-bottom: 10px;
+}
+
+.modules-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modules-scroll-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.modules-grid-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+/* KARTU MODUL UTAMA */
+.enterprise-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.01);
+}
+
+.enterprise-card:hover {
+  transform: translateY(-3px);
+  border-color: #94a3b8;
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.app-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+/* Gradasi Warna Ikon Premium */
+.indigo-bg {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+}
+
+.blue-bg {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.cyan-bg {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.emerald-bg {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.teal-bg {
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+}
+
+.amber-bg {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.orange-bg {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.purple-bg {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.pink-bg {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+}
+
+.rose-bg {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+}
+
+.badge-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.chip-indigo {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.chip-blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.chip-cyan {
+  background: #ecfeff;
+  color: #0891b2;
+}
+
+.chip-emerald {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.chip-teal {
+  background: #f0fdf4;
+  color: #0d9488;
+}
+
+.chip-amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.chip-orange {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.chip-purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.chip-pink {
+  background: #fdf2f8;
+  color: #db2777;
+}
+
+.chip-rose {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.card-body h4 {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px 0;
+}
+
+.card-body p {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.card-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 10px;
   border-top: 1px solid #f1f5f9;
 }
 
-.action-label {
-  font-size: 13px;
+.action-text {
+  font-size: 11.5px;
   font-weight: 600;
   color: #4f46e5;
   transition: color 0.2s;
 }
 
-.app-card:hover .action-label { color: #3730a3; }
-.nav-arrow { transition: transform 0.2s ease; }
-.app-card:hover .nav-arrow { transform: translateX(4px); }
-
-.dashboard-footer {
-  text-align: center;
-  font-size: 12px;
-  color: #94a3b8;
-  border-top: 1px dashed #cbd5e1;
-  padding-top: 24px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
+.enterprise-card:hover .action-text {
+  color: #3730a3;
 }
 
-.dot-separator { font-size: 16px; line-height: 0; }
-.clickable { cursor: pointer; }
+.enterprise-card:hover .arrow-icon {
+  transform: translateX(3px);
+}
+
+.arrow-icon {
+  transition: transform 0.2s ease;
+}
+
+.clickable {
+  cursor: pointer;
+}
 
 .slide-up {
   opacity: 0;
-  transform: translateY(12px);
-  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateY(10px);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.delay-1 { animation-delay: 0.05s; }
-.delay-2 { animation-delay: 0.1s; }
-.delay-3 { animation-delay: 0.15s; }
+.delay-1 {
+  animation-delay: 0.05s;
+}
 
 @keyframes slideUp {
-  to { opacity: 1; transform: translateY(0); }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 900px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 24px;
+  .workspace-enterprise {
+    height: auto;
+    overflow: visible;
   }
-  .metrics-wrapper {
-    width: 100%;
-    justify-content: space-around;
+
+  .enterprise-layout {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .modules-scroll-container {
+    overflow-y: visible;
   }
 }
 </style>

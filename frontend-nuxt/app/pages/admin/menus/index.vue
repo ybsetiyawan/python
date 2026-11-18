@@ -49,6 +49,8 @@
         :items="filteredMenus"
         :search="searchQuery"
         :loading="loading"
+        :items-per-page="5"
+        :items-per-page-options="[5, 10, 25, 50]"
         class="custom-table"
         no-data-text="Belum ada data menu sistem"
       >

@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const UserController = require('../server/api/controllers/userControllers');
+const authMiddleware = require("../middleware/authMiddleware");
+router.use(authMiddleware);
+
+
 
 
 // Endpoint ini akan menangani GET /api/users
