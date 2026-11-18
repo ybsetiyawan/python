@@ -114,7 +114,7 @@ class MonitorController {
 
         // Jika bukan cek terakhir, berikan jeda 30 detik sebelum cek berikutnya
         if (i < 3) {
-          await sleep(30000); // 30 detik jeda
+          await sleep(20000); // 20 detik jeda
         }
       }
 
